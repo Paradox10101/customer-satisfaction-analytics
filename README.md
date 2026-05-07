@@ -1,256 +1,301 @@
-# 📊 Customer Satisfaction Analytics
+# Customer Satisfaction Analytics
 
-<div align="center">
+[![AWS](https://img.shields.io/badge/AWS-Free%20Tier-FF9900?logo=amazonaws&logoColor=white)](#)
+[![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?logo=python&logoColor=white)](#)
+[![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?logo=streamlit&logoColor=white)](#)
+[![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform&logoColor=white)](#)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-![Analytics](https://img.shields.io/badge/Analytics-Customer%20Satisfaction-blue)
-![Cost](https://img.shields.io/badge/Cost-$0.00%2Fmonth-green)
-![AWS](https://img.shields.io/badge/AWS-Free%20Tier-orange)
-![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
+> Sistema end-to-end de análisis de satisfacción del cliente sobre arquitectura **Lakehouse en AWS Free Tier** (S3 + Athena + Glue), con dashboard interactivo en Streamlit, modelo ML de análisis de sentimientos, infraestructura como código (Terraform) y políticas de gobernanza (IAM, anonimización, lineaje).
 
-**Sistema completo de análisis de satisfacción del cliente con costo $0.00**
-
-</div>
-
----
-
-## 📋 **Tabla de Contenido**
-
-- [🎯 Resumen del Proyecto](#-resumen-del-proyecto)
-- [🚀 Inicio Rápido](#-inicio-rápido)
-- [🏗️ Infraestructura](#️-infraestructura) → [Ver detalles](docs/infrastructure/INFRAESTRUCTURA.md)
-- [🌐 Despliegue](#-despliegue) → [Ver guía completa](docs/deployment/DESPLIEGUE.md)
-- [💰 Análisis de Costos](#-análisis-de-costos) → [Ver detalles](docs/costs/COSTOS.md)
-- [📚 Documentación Completa](#-documentación) → [Ver índice](docs/README.md)
+> **🔱 Acerca de este fork:** este repositorio es un fork del proyecto original [`MilaPacompiaM/customer-satisfaction-analytics`](https://github.com/MilaPacompiaM/customer-satisfaction-analytics), donde tuve **autoría principal del código (24 de 30 commits del repositorio original)** como proyecto integrador del **Diplomado Advanced Data Engineer (DMC)**. Este fork mantiene la atribución al equipo original y agrega mejoras de documentación, sanitización de credenciales y limpieza de archivos redundantes.
 
 ---
 
-## 🎯 **Resumen del Proyecto**
+## Tabla de contenido
 
-### **Problemática**
-Necesidad de analizar la satisfacción del cliente a través de múltiples canales (chat, email, teléfono, presencial) sin incurrir en costos operativos elevados.
-
-### **Solución**
-Sistema de analytics completo utilizando **AWS Free Tier** y **herramientas open source** que garantiza:
-- 📊 **Dashboard interactivo** con Streamlit
-- 🤖 **Machine Learning** para análisis de sentimientos  
-- � **Business Intelligence** con visualizaciones avanzadas
-- 🛡️ **Seguridad enterprise** con IAM y cifrado
-- 💰 **Costo $0.00** garantizado con monitoreo automático
-
-### **Características Técnicas**
-- **Backend**: AWS (S3, Athena, Glue) + Python
-- **Frontend**: Streamlit Dashboard
-- **Datos**: Simulados realistas + pipeline real opcional
-- **ML**: Análisis de sentimientos con NLTK/spaCy
-- **Visualización**: Plotly + métricas KPI
-- **Seguridad**: IAM + cifrado + VPC
-- **Costo**: $0.00/mes con límites automáticos
+1. [Demo visual](#1-demo-visual)
+2. [Problema de negocio](#2-problema-de-negocio)
+3. [Arquitectura](#3-arquitectura)
+4. [Stack tecnológico](#4-stack-tecnológico)
+5. [Estructura del repositorio](#5-estructura-del-repositorio)
+6. [Setup y prerrequisitos](#6-setup-y-prerrequisitos)
+7. [Decisiones técnicas](#7-decisiones-técnicas)
+8. [Análisis de costos](#8-análisis-de-costos)
+9. [Mi contribución](#9-mi-contribución)
+10. [Lecciones aprendidas](#10-lecciones-aprendidas)
+11. [Licencia y créditos](#11-licencia-y-créditos)
 
 ---
 
-## 🚀 **Inicio Rápido**
+## 1. Demo visual
 
-### **Prerrequisitos**
-- Windows 10/11
-- Python 3.8+
-- Git
-- Cuenta AWS (opcional para infraestructura)
+Dashboard Streamlit con análisis de sentimientos, KPIs de satisfacción y métricas por canal de atención (chat, email, teléfono, presencial). Visualizable en local sin necesidad de cuenta AWS.
 
-### **1. Clonar Repositorio**
 ```bash
-git clone https://github.com/MilaPacompiaM/customer-satisfaction-analytics.git
-cd customer-satisfaction-analytics
+streamlit run streamlit_app.py   # http://localhost:8501
 ```
-
-### **2. Configurar Entorno Python**
-```bash
-# Crear entorno virtual
-python -m venv .venv
-
-# Activar entorno virtual
-.venv\Scripts\activate
-
-# Instalar dependencias
-pip install -r requirements-streamlit.txt
-```
-
-### **3. Generar Datos Simulados** (Solo primera vez)
-```bash
-# Ejecutar simulador de datos
-python scripts/data_simulator.py
-```
-> ⚠️ **Importante**: Los datos simulados son únicos para cada ejecución. Para desarrollo colaborativo, ejecutar solo una vez y compartir los archivos generados.
-
-### **4. Ejecutar Dashboard**
-```bash
-# Opción 1: Script rápido (Windows) - RECOMENDADO
-run_dashboard.bat
-
-# Opción 2: Desde raíz del proyecto
-streamlit run streamlit_app.py
-
-# Opción 3: Directamente desde subdirectorio  
-streamlit run analytics/streamlit_dashboard/app.py
-```
-
-### **5. Acceder al Dashboard**
-- **URL Local**: http://localhost:8501
-- **URL Red**: http://192.168.18.15:8501
 
 ---
 
-## 🏗️ **Infraestructura**
+## 2. Problema de negocio
 
-El proyecto tiene dos modalidades de funcionamiento:
+Necesidad de analizar la satisfacción del cliente a través de **múltiples canales** (chat, email, teléfono, presencial) sin incurrir en costos operativos. Las empresas medianas suelen tener data dispersa en CRMs, hojas de cálculo y sistemas de tickets, sin una vista unificada para tomar decisiones.
 
-### **🔵 Modo Local (Desarrollo)**
-- ✅ **Actualmente configurado**
-- ✅ Datos simulados automáticos
-- ✅ Sin dependencias AWS
-- ✅ Perfecto para desarrollo y testing
-
-### **🟡 Modo AWS (Producción)**
-- 🔄 **En preparación**
-- ✅ Terraform listo para deploy
-- ✅ Infraestructura Free Tier confirmada
-- ✅ Costo $0.00 garantizado
-
-**→ [Ver arquitectura completa y detalles técnicos](docs/infrastructure/INFRAESTRUCTURA.md)**
+**Solución propuesta:** un Lakehouse sobre AWS Free Tier que centraliza, procesa y expone la información en un dashboard accionable, con costo $0.00 garantizado mediante límites de presupuesto y monitoreo automático.
 
 ---
 
-## 🌐 **Despliegue**
+## 3. Arquitectura
 
-### **Local (Listo)**
-```bash
-streamlit run streamlit_app.py
+```mermaid
+flowchart LR
+    classDef src fill:#FFE699,stroke:#000,color:#000
+    classDef ingest fill:#BDD7EE,stroke:#000,color:#000
+    classDef storage fill:#C6E0B4,stroke:#000,color:#000
+    classDef compute fill:#F4B084,stroke:#000,color:#000
+    classDef serve fill:#FFD966,stroke:#000,color:#000
+    classDef bi fill:#F2C811,stroke:#000,color:#000
+
+    SRC["Fuentes simuladas<br/>(call center, WhatsApp,<br/>tickets, reseñas online,<br/>encuestas, libro reclamaciones)"]:::src
+
+    SIM["Python data simulator<br/>(Faker)"]:::ingest
+    UP["S3 uploader"]:::ingest
+
+    S3["AWS S3<br/>data lake<br/>raw/processed"]:::storage
+    GLUE["AWS Glue<br/>catalog + ETL"]:::compute
+    ATHENA["AWS Athena<br/>SQL queries"]:::compute
+    NLP["Sentiment analysis<br/>NLTK / spaCy"]:::compute
+    ML["ML predictor<br/>scikit-learn"]:::compute
+
+    DASH["Streamlit dashboard<br/>+ Plotly KPIs"]:::serve
+    QS["AWS QuickSight<br/>(automation script)"]:::bi
+
+    SRC --> SIM --> UP --> S3
+    S3 --> GLUE --> ATHENA
+    S3 --> NLP --> ML
+    ATHENA --> DASH
+    ML --> DASH
+    ATHENA --> QS
+
+    linkStyle default stroke:#000,stroke-width:1.5px
 ```
 
-### **Streamlit Cloud (En evaluación)**
-- Requiere fork del repositorio (verificando permisos)
-- Archivo principal: `streamlit_app.py`
-- Requirements: `requirements-streamlit.txt`
-
-### **AWS (Preparado)**
-- Infraestructura Terraform lista
-- Free Tier configurado
-- Deploy pendiente de aprobación
-
-**→ [Ver guía completa de despliegue](docs/deployment/DESPLIEGUE.md)**
+**Diagrama detallado con iconos AWS:** ver [`docs/architecture/ARQUITECTURA_OFICIAL.html`](docs/architecture/ARQUITECTURA_OFICIAL.html) o [`ARQUITECTURA_OFICIAL.drawio`](docs/architecture/ARQUITECTURA_OFICIAL.drawio) (editable en [draw.io](https://app.diagrams.net)).
 
 ---
 
-## � **Análisis de Costos**
+## 4. Stack tecnológico
 
-### **Costo Actual: $0.00**
-- ✅ Desarrollo 100% local
-- ✅ Sin servicios AWS activos de este proyecto
-- ✅ Datos simulados sin costo
-
-### **Costo AWS (Proyectado): $0.00**
-- ✅ S3: <100MB de 5GB gratuitos
-- ✅ Athena: <10MB scan de 5GB gratuitos
-- ✅ Glue: <2 horas de 1M gratuitas
-- ✅ Límites automáticos configurados
-
-**→ [Ver análisis detallado de costos](docs/costs/COSTOS.md)**
+| Categoría | Tecnología | Detalle |
+|---|---|---|
+| **Cloud** | AWS Free Tier | S3, Athena, Glue, IAM, QuickSight |
+| **Procesamiento** | Python 3.8+ | Pandas, PySpark (jobs opcionales) |
+| **Lakehouse** | Delta Lake samples | Parquet + Glue Catalog |
+| **Frontend** | Streamlit + Plotly | Dashboard interactivo, KPIs |
+| **ML** | NLTK, spaCy, scikit-learn | Análisis de sentimientos + predictor de satisfacción |
+| **IaC** | Terraform | Despliegue completo de infraestructura AWS |
+| **Containerización** | Docker + docker-compose | Para entorno reproducible |
+| **Gobernanza** | IAM policies + scripts custom | Anonimización + lineaje de datos |
+| **CI/CD** | GitHub Actions | Pipeline de tests y data |
 
 ---
 
-## 📁 **Estructura del Proyecto**
+## 5. Estructura del repositorio
 
-```
+```text
 customer-satisfaction-analytics/
-├── 📄 README.md                      # Este archivo (principal)
-├── 🗂️ docs/                          # Documentación completa
-│   ├── 📄 README.md                  # Índice de documentación
-│   ├── architecture/                 # Diagramas y arquitectura
-│   ├── costs/                        # Análisis de costos
-│   ├── deployment/                   # Guías de despliegue
-│   └── infrastructure/               # Documentación infraestructura
-├── 🗂️ analytics/                     # Dashboard y análisis
-│   ├── streamlit_dashboard/          # App Streamlit principal
-│   ├── ml_models/                    # Modelos de ML
-│   └── exploratory/                  # Análisis exploratorios
-├── 🗂️ data/                          # Datos y muestras
-│   ├── dummy/                        # Datos de prueba
-│   ├── raw/                          # Datos crudos
-│   ├── processed/                    # Datos procesados
-│   └── simulated/                    # Datos simulados
-├── 🗂️ storage/                       # Data Lakehouse
-│   ├── lakehouse/                    # Arquitectura Delta Lake
-│   ├── parquet_samples/              # Muestras Parquet
-│   └── metadata_catalog/             # Glue Catalog
-├── 🗂️ governance/                    # Seguridad y gobernanza
-│   ├── security_policies/            # Políticas IAM
-│   ├── anonymization/                # Scripts anonimización
-│   └── lineage/                      # Lineaje de datos
-├── 🗂️ infra/                         # Infraestructura como código
-│   └── terraform/                    # Configuración AWS
-├── 🗂️ scripts/                       # Utilidades y simuladores
-└── 🔧 streamlit_app.py               # Punto de entrada principal
+├── README.md                    ← este archivo
+├── LICENSE                      ← Apache 2.0 (heredado del fork)
+├── streamlit_app.py             ← entrada principal del dashboard
+├── run_dashboard.bat            ← script rápido Windows
+├── requirements*.txt            ← dependencias por contexto
+│
+├── analytics/                   ← análisis y modelos
+│   ├── streamlit_dashboard/     ← app principal Streamlit
+│   ├── ml_models/               ← satisfaction predictor
+│   ├── nlp_models/              ← sentiment analyzer
+│   ├── exploratory/             ← notebooks Jupyter
+│   └── bi_reports/              ← QuickSight automation
+│
+├── data/                        ← datasets
+│   ├── dummy/                   ← samples para tests
+│   ├── simulated/               ← generados por Faker (CSV + Parquet)
+│   ├── raw/, processed/, external/  ← capas del lakehouse
+│
+├── docs/                        ← documentación + arquitectura
+│   ├── architecture/
+│   │   ├── ARQUITECTURA_OFICIAL.html    ← diagrama final con iconos AWS
+│   │   ├── ARQUITECTURA_OFICIAL.drawio  ← source editable (draw.io)
+│   │   ├── ARQUITECTURA_TO_BE.md        ← descripción narrativa
+│   │   ├── DIAGRAMA_ARQUITECTURA_DETALLADO.md
+│   │   ├── JUSTIFICACION_TECNICA.md
+│   │   └── *.svg                        ← versiones SVG de diagramas
+│   ├── infrastructure/, deployment/, costs/
+│   └── README.md, context.md, project_summary.md
+│
+├── infra/                       ← Infrastructure-as-Code
+│   ├── terraform/               ← main.tf, variables.tf, *.tfvars.example
+│   └── cdk/                     ← (legacy CDK, no activo)
+│
+├── ingestion/                   ← scripts de carga
+│   ├── scripts/s3_uploader.py
+│   ├── sql/01_create_tables.sql
+│   └── aws_glue_jobs/, configs/
+│
+├── processing/                  ← jobs PySpark + SQL transformations
+│
+├── governance/                  ← seguridad y gobernanza
+│   ├── anonymization/           ← funciones de anonimización
+│   ├── lineage/                 ← tracking de lineaje de datos
+│   └── security_policies/       ← políticas IAM
+│
+├── docker/                      ← containerización
+│   ├── Dockerfile
+│   ├── docker-compose.yml
+│   └── entrypoint.sh
+│
+├── scripts/                     ← utilidades
+│   ├── data_simulator.py        ← genera CSVs simulados (Faker)
+│   ├── aws_cost_monitor.py      ← monitoreo de costos AWS
+│   ├── diagram_generator.py     ← genera SVGs de arquitectura
+│   └── setup_*.py               ← bootstrap de cuenta AWS
+│
+├── storage/                     ← samples del lakehouse
+└── tests/                       ← tests unitarios e integración
 ```
 
 ---
 
-## �️ **Comandos Útiles**
+## 6. Setup y prerrequisitos
 
-### **Desarrollo**
+### Requisitos
+
+- Python 3.8 o superior
+- Git
+- (Opcional para AWS) Cuenta AWS con Free Tier + Terraform CLI
+
+### Inicio rápido (modo local sin AWS)
+
 ```bash
-# Activar entorno
-.venv\Scripts\activate
+# 1. Clonar el fork
+git clone https://github.com/Paradox10101/customer-satisfaction-analytics.git
+cd customer-satisfaction-analytics
 
-# Ejecutar dashboard
-streamlit run streamlit_app.py
+# 2. Crear entorno virtual
+python -m venv .venv
+.venv\Scripts\activate           # Windows
+# source .venv/bin/activate      # Linux/Mac
 
-# Generar nuevos datos
+# 3. Instalar dependencias
+pip install -r requirements-streamlit.txt
+
+# 4. Generar datos simulados (primera vez)
 python scripts/data_simulator.py
 
-# Ver costos AWS (si está configurado)
-python scripts/aws_cost_monitor.py
+# 5. Levantar dashboard
+streamlit run streamlit_app.py
+# http://localhost:8501
 ```
 
-### **Deploy AWS** (Futuro)
+### Despliegue AWS (opcional)
+
 ```bash
+# 1. Configurar credenciales AWS
+aws configure
+
+# 2. Copiar plantilla de variables
 cd infra/terraform
+cp terraform.tfvars.example terraform.tfvars
+# Editar terraform.tfvars con tus valores reales (NO commitear)
+
+# 3. Desplegar
 terraform init
 terraform plan
 terraform apply
 ```
 
----
-
-## 👥 **Equipo y Colaboración**
-
-- **Repositorio**: https://github.com/MilaPacompiaM/customer-satisfaction-analytics
-- **Rama actual**: `Edgardo`
-- **Owner**: MilaPacompiaM
-- **Colaboradores**: Edgardo y equipo
-
-### **Workflow de Desarrollo**
-1. **Local first**: Desarrollo en entorno local
-2. **Datos simulados**: Para desarrollo independiente
-3. **AWS opcional**: Solo para producción
-4. **Fork para deploy**: Si se requiere deployment externo
+**Costo proyectado:** $0.00/mes dentro del Free Tier (S3 < 5 GB, Athena < 5 GB scan, Glue < 1M DPU-hours).
 
 ---
 
-## 📞 **Soporte y Contacto**
+## 7. Decisiones técnicas
 
-- **Issues**: GitHub Issues
-- **Documentación**: [Ver índice completo](docs/README.md)
-- **Email alertas AWS**: paradox1100p@gmail.com
+| Decisión | Justificación |
+|---|---|
+| **AWS Free Tier como restricción de diseño** | Forzar arquitectura cost-aware. La mayoría de proyectos académicos asumen presupuesto ilimitado; este demuestra ingeniería bajo limitaciones reales |
+| **Datos simulados con Faker** | Reproducibilidad sin depender de datasets externos que pueden cambiar/desaparecer |
+| **Streamlit antes que Power BI / QuickSight** | Hosting gratuito en Streamlit Cloud, sin licencias |
+| **Athena antes que Redshift** | Pay-per-query, ideal para Free Tier (Redshift cuesta $0.25/h mínimo) |
+| **Terraform antes que CloudFormation** | Multi-cloud y mejor experiencia de desarrollo |
+| **Anonimización en governance/** | PII (Personally Identifiable Information) eliminada antes de procesamiento |
+| **Tests unitarios en tests/** | Validación automática de funciones críticas (anonimización, ETL) |
 
 ---
 
-<div align="center">
+## 8. Análisis de costos
 
-**📊 Desarrollado con ❤️ para análisis de satisfacción del cliente**
+| Servicio AWS | Free Tier | Uso del proyecto | Costo |
+|---|---|---|---|
+| S3 | 5 GB | < 100 MB | $0.00 |
+| Athena | 5 GB scan/mes | < 10 MB scan | $0.00 |
+| Glue | 1M DPU-hours | < 2 horas | $0.00 |
+| QuickSight | 4 usuarios autor | 1 usuario | $0.00 |
+| **Total mensual** | — | — | **$0.00** |
 
-[📚 **Ver documentación completa**](docs/README.md) | [🚀 **¡Comenzar Ahora!**](#-inicio-rápido)
+Detalle completo en [`docs/costs/COSTOS.md`](docs/costs/COSTOS.md).
 
-**⭐ ¡Dale una estrella si este proyecto te es útil!**
+**Protección anti-costos:** AWS Budget configurado a $1.00/mes con alertas automáticas.
 
-![GitHub stars](https://img.shields.io/github/stars/MilaPacompiaM/customer-satisfaction-analytics?style=social)
+---
 
-</div>
+## 9. Mi contribución
+
+Como contribuidor principal del repositorio original (24 de 30 commits = ~80%), mi aporte cubrió:
+
+- **Arquitectura inicial del proyecto:** estructura de carpetas, `data_simulator.py`, sentiment analyzer
+- **Streamlit dashboard:** desarrollo completo de la app interactiva con KPIs y filtros
+- **AWS automation:** scripts `aws_cost_monitor.py`, `setup_account_*.py`, QuickSight automation
+- **ML modeling:** `satisfaction_predictor.py` con scikit-learn
+- **Infraestructura como código:** Terraform (`main.tf`, `variables.tf`, configuración Free Tier)
+- **CI/CD:** pipelines de GitHub Actions (tests, data pipeline)
+- **Documentación de arquitectura:** diagramas detallados (drawio + SVG + HTML), `JUSTIFICACION_TECNICA.md`, `ARQUITECTURA_TO_BE.md`
+- **Gobernanza:** scripts de anonimización y lineaje
+- **Migración cost-free:** transición de configuraciones costosas a Free Tier garantizado
+
+Contribuciones verificables vía:
+
+```bash
+git log --author="Paradox\|Edgardo\|Solis" --oneline | wc -l   # 24 commits
+```
+
+---
+
+## 10. Lecciones aprendidas
+
+- **El AWS Free Tier es más restrictivo de lo que parece.** Diseñar para él obliga a tomar decisiones técnicas que, paradójicamente, suelen ser más limpias (menos overhead, mejor arquitectura).
+- **Anonimizar antes de procesar es más fácil que después.** Implementarlo como primer paso del pipeline ahorra dolores de cabeza en gobernanza más adelante.
+- **Diagramas con iconos oficiales > diagramas genéricos.** Los reclutadores técnicos reconocen los iconos de AWS al instante.
+- **Documentar costos proyectados es un diferenciador.** Pocos proyectos académicos incluyen análisis de costos; los hiring managers lo valoran como señal de pensamiento de producción.
+- **Trabajar en equipo con git: ramas separadas + PRs.** Evita conflictos pero requiere disciplina con merges (lección aprendida cuando una rama "Edgardo" experimental quiso introducir cambios destructivos).
+
+---
+
+## 11. Licencia y créditos
+
+**Licencia:** Apache 2.0 (heredada del repositorio original).
+
+**Repositorio original:** [`MilaPacompiaM/customer-satisfaction-analytics`](https://github.com/MilaPacompiaM/customer-satisfaction-analytics)
+
+**Equipo del proyecto académico (Diplomado DMC):** Mila Pacompia Mendoza, Edgardo Solis Cornelio, y otros colaboradores.
+
+**Mantenimiento de este fork:** Edgardo Solis Cornelio ([@Paradox10101](https://github.com/Paradox10101)) — sanitización de credenciales, mejora de README, organización de archivos.
+
+---
+
+## Aviso de seguridad
+
+- **Credenciales sanitizadas** antes de hacer público este fork (AWS Account IDs, emails personales, encrypted credentials reemplazados por placeholders).
+- Archivos `.tfvars`, `.tfstate`, `.terraform/` excluidos vía `.gitignore`.
+- La cuenta AWS utilizada durante el desarrollo era una suscripción gratuita de prueba **ya finalizada**; los recursos no existen actualmente.
+- Para reproducir el proyecto, configurar credenciales propias (ver `infra/terraform/terraform.tfvars.example`).
