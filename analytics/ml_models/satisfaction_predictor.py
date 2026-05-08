@@ -463,9 +463,9 @@ class SatisfactionPredictor:
                     categorical_features = cat_feature_names.tolist()
             
             return list(numeric_features) + categorical_features
-            
-        except:
-            # Fallback a nombres genéricos
+
+        except (KeyError, AttributeError, ValueError):
+            # Fallback a nombres genericos si la pipeline no tiene los steps esperados
             n_features = pipeline.named_steps['model'].n_features_in_
             return [f'feature_{i}' for i in range(n_features)]
     

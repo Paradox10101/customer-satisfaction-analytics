@@ -1,4 +1,41 @@
-# 🏗️ INFRAESTRUCTURA - Customer Satisfaction Analytics
+# 🏗️ Infraestructura — Arquitectura **AS-IS**
+
+> 🟢 **AS-IS · DESPLEGADO** — Recursos AWS provisionados vía Terraform (`infra/terraform/main.tf`).
+
+## Diagrama de infraestructura
+
+```mermaid
+flowchart LR
+    classDef tf fill:#ede9fe,stroke:#7c3aed,color:#5b21b6
+    classDef aws fill:#fff7ed,stroke:#c2410c,color:#9a3412
+    classDef sec fill:#fee2e2,stroke:#b91c1c,color:#991b1b
+    classDef cost fill:#fef3c7,stroke:#a16207,color:#854d0e
+
+    TF["Terraform CLI<br/>(local)"]:::tf
+    MAIN["main.tf + variables.tf"]:::tf
+
+    S3RAW["S3 — raw bucket"]:::aws
+    S3PROC["S3 — processed bucket"]:::aws
+    S3LOGS["S3 — athena results bucket"]:::aws
+    GLUEDB["Glue Database"]:::aws
+    GLUECRW["Glue Crawler"]:::aws
+    ATHWG["Athena Workgroup"]:::aws
+
+    IAM["IAM Roles + Policies<br/>(least privilege)"]:::sec
+    BUDGET["AWS Budget<br/>$1.00/mes alert"]:::cost
+
+    TF --> MAIN
+    MAIN --> S3RAW
+    MAIN --> S3PROC
+    MAIN --> S3LOGS
+    MAIN --> GLUEDB
+    MAIN --> GLUECRW
+    MAIN --> ATHWG
+    MAIN --> IAM
+    MAIN --> BUDGET
+
+    linkStyle default stroke:#94a3b8,stroke-width:1.5px
+```
 
 ---
 
@@ -152,8 +189,8 @@ cd infra/terraform/
 
 # Variables configuradas
 region          = "us-east-1"
-account_id      = "155537880398"
-user_email      = "paradox1100p@gmail.com"
+account_id      = "<AWS_ACCOUNT_ID>"
+user_email      = "your-email@example.com"
 environment     = "dev"
 cost_limit      = 1.00  # USD (alerta temprana)
 ```
@@ -259,7 +296,7 @@ aws logs describe-log-groups
 ```
 
 ### **Alertas Configuradas**
-- 📧 **Email**: paradox1100p@gmail.com
+- 📧 **Email**: your-email@example.com
 - 🚨 **Triggers**:
   - Costo >$0.50
   - Storage >4GB

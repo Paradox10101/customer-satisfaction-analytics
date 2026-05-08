@@ -1,0 +1,602 @@
+{
+  "customer_satisfaction_analytics_policies": {
+    "description": "Políticas IAM para Customer Satisfaction Analytics siguiendo principio de menor privilegio",
+    "version": "2012-10-17",
+    "policies": {
+      "data_engineer_policy": {
+        "description": "Política para ingenieros de datos - acceso completo a pipeline ETL",
+        "policy_document": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "S3DataLakeAccess",
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject",
+                "s3:ListBucket",
+                "s3:GetBucketLocation",
+                "s3:GetBucketVersioning",
+                "s3:ListBucketVersions"
+              ],
+              "Resource": [
+                "arn:aws:s3:::customer-satisfaction-data-lake-*",
+                "arn:aws:s3:::customer-satisfaction-data-lake-*/*",
+                "arn:aws:s3:::customer-satisfaction-athena-results-*",
+                "arn:aws:s3:::customer-satisfaction-athena-results-*/*"
+              ]
+            },
+            {
+              "Sid": "GlueFullAccess",
+              "Effect": "Allow",
+              "Action": [
+                "glue:*"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": ["us-east-1", "us-west-2"]
+                }
+              }
+            },
+            {
+              "Sid": "AthenaQueryAccess",
+              "Effect": "Allow",
+              "Action": [
+                "athena:GetQueryExecution",
+                "athena:GetQueryResults",
+                "athena:StartQueryExecution",
+                "athena:StopQueryExecution",
+                "athena:GetWorkGroup",
+                "athena:ListQueryExecutions"
+              ],
+              "Resource": [
+                "arn:aws:athena:*:*:workgroup/customer-satisfaction-*"
+              ]
+            },
+            {
+              "Sid": "CloudWatchLogsAccess",
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+                "logs:DescribeLogStreams",
+                "logs:DescribeLogGroups"
+              ],
+              "Resource": [
+                "arn:aws:logs:*:*:log-group:/aws/glue/*",
+                "arn:aws:logs:*:*:log-group:/customer-satisfaction/*"
+              ]
+            },
+            {
+              "Sid": "IAMPassRoleForGlue",
+              "Effect": "Allow",
+              "Action": [
+                "iam:PassRole"
+              ],
+              "Resource": [
+                "arn:aws:iam::*:role/customer-satisfaction-glue-role-*"
+              ],
+              "Condition": {
+                "StringEquals": {
+                  "iam:PassedToService": "glue.amazonaws.com"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "data_analyst_policy": {
+        "description": "Política para analistas de datos - acceso de solo lectura con Athena",
+        "policy_document": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "S3ReadOnlyAccess",
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject",
+                "s3:ListBucket",
+                "s3:GetBucketLocation"
+              ],
+              "Resource": [
+                "arn:aws:s3:::customer-satisfaction-data-lake-*",
+                "arn:aws:s3:::customer-satisfaction-data-lake-*/processed-data/*",
+                "arn:aws:s3:::customer-satisfaction-data-lake-*/curated-data/*",
+                "arn:aws:s3:::customer-satisfaction-athena-results-*",
+                "arn:aws:s3:::customer-satisfaction-athena-results-*/*"
+              ]
+            },
+            {
+              "Sid": "AthenaQueryExecutionAccess",
+              "Effect": "Allow",
+              "Action": [
+                "athena:GetQueryExecution",
+                "athena:GetQueryResults",
+                "athena:StartQueryExecution",
+                "athena:GetWorkGroup",
+                "athena:ListQueryExecutions"
+              ],
+              "Resource": [
+                "arn:aws:athena:*:*:workgroup/customer-satisfaction-*"
+              ]
+            },
+            {
+              "Sid": "GlueDataCatalogReadAccess",
+              "Effect": "Allow",
+              "Action": [
+                "glue:GetDatabase",
+                "glue:GetDatabases",
+                "glue:GetTable",
+                "glue:GetTables",
+                "glue:GetPartition",
+                "glue:GetPartitions"
+              ],
+              "Resource": [
+                "arn:aws:glue:*:*:catalog",
+                "arn:aws:glue:*:*:database/customer_satisfaction_db",
+                "arn:aws:glue:*:*:table/customer_satisfaction_db/*"
+              ]
+            },
+            {
+              "Sid": "QuickSightAccess",
+              "Effect": "Allow",
+              "Action": [
+                "quicksight:DescribeDataSet",
+                "quicksight:DescribeDataSource",
+                "quicksight:DescribeAnalysis",
+                "quicksight:DescribeDashboard",
+                "quicksight:ListAnalyses",
+                "quicksight:ListDashboards",
+                "quicksight:ListDataSets",
+                "quicksight:ListDataSources"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      },
+      "ml_engineer_policy": {
+        "description": "Política para ingenieros ML - acceso a SageMaker y modelos",
+        "policy_document": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "SageMakerFullAccess",
+              "Effect": "Allow",
+              "Action": [
+                "sagemaker:CreateTrainingJob",
+                "sagemaker:CreateModel",
+                "sagemaker:CreateEndpoint",
+                "sagemaker:CreateEndpointConfig",
+                "sagemaker:DescribeTrainingJob",
+                "sagemaker:DescribeModel",
+                "sagemaker:DescribeEndpoint",
+                "sagemaker:InvokeEndpoint",
+                "sagemaker:ListModels",
+                "sagemaker:ListEndpoints",
+                "sagemaker:DeleteModel",
+                "sagemaker:DeleteEndpoint"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringLike": {
+                  "sagemaker:ResourceTag/Project": "customer-satisfaction-analytics"
+                }
+              }
+            },
+            {
+              "Sid": "S3ModelArtifactsAccess",
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:ListBucket"
+              ],
+              "Resource": [
+                "arn:aws:s3:::customer-satisfaction-data-lake-*/models/*",
+                "arn:aws:s3:::customer-satisfaction-data-lake-*/processed-data/*"
+              ]
+            },
+            {
+              "Sid": "ECRAccess",
+              "Effect": "Allow",
+              "Action": [
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "CloudWatchMetricsAccess",
+              "Effect": "Allow",
+              "Action": [
+                "cloudwatch:PutMetricData",
+                "cloudwatch:GetMetricStatistics",
+                "cloudwatch:ListMetrics"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "cloudwatch:namespace": [
+                    "SageMaker/TrainingJobs",
+                    "SageMaker/Endpoints",
+                    "CustomerSatisfaction/Models"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "business_user_policy": {
+        "description": "Política para usuarios de negocio - acceso limitado a dashboards",
+        "policy_document": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "QuickSightReadOnlyAccess",
+              "Effect": "Allow",
+              "Action": [
+                "quicksight:DescribeDashboard",
+                "quicksight:ListDashboards",
+                "quicksight:GetDashboardEmbedUrl",
+                "quicksight:DescribeAnalysis",
+                "quicksight:ListAnalyses"
+              ],
+              "Resource": [
+                "arn:aws:quicksight:*:*:dashboard/customer-satisfaction-*",
+                "arn:aws:quicksight:*:*:analysis/customer-satisfaction-*"
+              ]
+            },
+            {
+              "Sid": "DenyDataAccess",
+              "Effect": "Deny",
+              "Action": [
+                "s3:*",
+                "glue:*",
+                "athena:*",
+                "sagemaker:*"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      },
+      "devops_policy": {
+        "description": "Política para DevOps - gestión de infraestructura",
+        "policy_document": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "TerraformManagementAccess",
+              "Effect": "Allow",
+              "Action": [
+                "s3:*",
+                "glue:*",
+                "athena:*",
+                "iam:*",
+                "logs:*",
+                "cloudformation:*",
+                "ec2:DescribeRegions",
+                "ec2:DescribeAvailabilityZones"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestTag/ManagedBy": "Terraform"
+                }
+              }
+            },
+            {
+              "Sid": "CloudWatchFullAccess",
+              "Effect": "Allow",
+              "Action": [
+                "cloudwatch:*",
+                "logs:*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "SecretsManagerAccess",
+              "Effect": "Allow",
+              "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+                "secretsmanager:PutSecretValue",
+                "secretsmanager:CreateSecret",
+                "secretsmanager:UpdateSecret"
+              ],
+              "Resource": [
+                "arn:aws:secretsmanager:*:*:secret:customer-satisfaction/*"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "trust_policies": {
+      "glue_service_trust_policy": {
+        "description": "Trust policy para roles de AWS Glue",
+        "policy_document": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "glue.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        }
+      },
+      "sagemaker_service_trust_policy": {
+        "description": "Trust policy para roles de SageMaker",
+        "policy_document": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "sagemaker.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        }
+      },
+      "cross_account_trust_policy": {
+        "description": "Trust policy para acceso cross-account",
+        "policy_document": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::ACCOUNT-ID:root"
+              },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": {
+                  "sts:ExternalId": "customer-satisfaction-external-id"
+                },
+                "IpAddress": {
+                  "aws:SourceIp": [
+                    "203.0.113.0/24",
+                    "198.51.100.0/24"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "role_definitions": {
+      "data_engineer_role": {
+        "role_name": "customer-satisfaction-data-engineer",
+        "description": "Rol para ingenieros de datos del proyecto",
+        "trust_policy": "ec2_trust_policy",
+        "attached_policies": ["data_engineer_policy"],
+        "max_session_duration": 3600,
+        "tags": [
+          {
+            "Key": "Project",
+            "Value": "customer-satisfaction-analytics"
+          },
+          {
+            "Key": "Team",
+            "Value": "data-engineering"
+          }
+        ]
+      },
+      "data_analyst_role": {
+        "role_name": "customer-satisfaction-data-analyst",
+        "description": "Rol para analistas de datos",
+        "trust_policy": "ec2_trust_policy",
+        "attached_policies": ["data_analyst_policy"],
+        "max_session_duration": 3600,
+        "tags": [
+          {
+            "Key": "Project",
+            "Value": "customer-satisfaction-analytics"
+          },
+          {
+            "Key": "Team",
+            "Value": "analytics"
+          }
+        ]
+      },
+      "ml_engineer_role": {
+        "role_name": "customer-satisfaction-ml-engineer",
+        "description": "Rol para ingenieros de Machine Learning",
+        "trust_policy": "sagemaker_service_trust_policy",
+        "attached_policies": ["ml_engineer_policy"],
+        "max_session_duration": 7200,
+        "tags": [
+          {
+            "Key": "Project",
+            "Value": "customer-satisfaction-analytics"
+          },
+          {
+            "Key": "Team",
+            "Value": "machine-learning"
+          }
+        ]
+      },
+      "glue_execution_role": {
+        "role_name": "customer-satisfaction-glue-execution",
+        "description": "Rol de ejecución para jobs de AWS Glue",
+        "trust_policy": "glue_service_trust_policy",
+        "attached_policies": ["data_engineer_policy"],
+        "max_session_duration": 3600,
+        "tags": [
+          {
+            "Key": "Project",
+            "Value": "customer-satisfaction-analytics"
+          },
+          {
+            "Key": "Service",
+            "Value": "glue"
+          }
+        ]
+      }
+    },
+    "security_best_practices": {
+      "password_policy": {
+        "minimum_password_length": 14,
+        "require_symbols": true,
+        "require_numbers": true,
+        "require_uppercase_characters": true,
+        "require_lowercase_characters": true,
+        "allow_users_to_change_password": true,
+        "max_password_age": 90,
+        "password_reuse_prevention": 12,
+        "hard_expiry": false
+      },
+      "mfa_requirements": {
+        "require_mfa_for_console_access": true,
+        "require_mfa_for_api_access": false,
+        "allowed_mfa_devices": ["virtual-mfa-device", "hardware-mfa-device"],
+        "mfa_token_max_age": 3600
+      },
+      "access_key_rotation": {
+        "max_access_key_age_days": 90,
+        "warning_before_expiry_days": 15,
+        "automatic_rotation_enabled": true
+      },
+      "session_management": {
+        "max_session_duration": 3600,
+        "require_session_tagging": true,
+        "allowed_session_tags": [
+          "Project",
+          "Environment",
+          "Team",
+          "Purpose"
+        ]
+      }
+    },
+    "compliance_controls": {
+      "gdpr_compliance": {
+        "data_encryption_at_rest": true,
+        "data_encryption_in_transit": true,
+        "data_retention_policy": {
+          "raw_data_retention_days": 2555,
+          "processed_data_retention_days": 1825,
+          "log_retention_days": 2555
+        },
+        "data_anonymization": {
+          "pii_fields": [
+            "cliente_id",
+            "agente_id",
+            "transcript_texto"
+          ],
+          "anonymization_method": "hashing",
+          "anonymization_algorithm": "SHA-256"
+        },
+        "right_to_erasure": {
+          "erasure_process_defined": true,
+          "erasure_verification_required": true,
+          "erasure_completion_sla_days": 30
+        }
+      },
+      "sox_compliance": {
+        "audit_logging_enabled": true,
+        "change_management_required": true,
+        "segregation_of_duties": true,
+        "access_reviews": {
+          "frequency": "quarterly",
+          "reviewer_roles": ["security-admin", "data-owner"],
+          "automated_reports": true
+        }
+      },
+      "iso27001_controls": {
+        "access_control": {
+          "principle_of_least_privilege": true,
+          "regular_access_reviews": true,
+          "privileged_access_monitoring": true
+        },
+        "information_security": {
+          "data_classification": true,
+          "security_awareness_training": true,
+          "incident_response_plan": true
+        },
+        "operational_security": {
+          "change_management": true,
+          "vulnerability_management": true,
+          "backup_and_recovery": true
+        }
+      }
+    },
+    "monitoring_and_alerting": {
+      "cloudtrail_configuration": {
+        "enable_file_validation": true,
+        "include_global_service_events": true,
+        "is_multi_region_trail": true,
+        "enable_logging": true,
+        "s3_bucket_name": "customer-satisfaction-cloudtrail-logs",
+        "s3_key_prefix": "cloudtrail-logs/"
+      },
+      "cloudwatch_alarms": [
+        {
+          "alarm_name": "UnauthorizedS3Access",
+          "description": "Alerta por acceso no autorizado a buckets S3",
+          "metric_name": "UnauthorizedAPICalls",
+          "namespace": "AWS/CloudTrail",
+          "statistic": "Sum",
+          "period": 300,
+          "evaluation_periods": 1,
+          "threshold": 1,
+          "comparison_operator": "GreaterThanOrEqualToThreshold"
+        },
+        {
+          "alarm_name": "RootAccountUsage",
+          "description": "Alerta por uso de cuenta root",
+          "metric_name": "RootAccountUsage",
+          "namespace": "AWS/CloudTrail",
+          "statistic": "Sum",
+          "period": 300,
+          "evaluation_periods": 1,
+          "threshold": 1,
+          "comparison_operator": "GreaterThanOrEqualToThreshold"
+        },
+        {
+          "alarm_name": "IAMPolicyChanges",
+          "description": "Alerta por cambios en políticas IAM",
+          "metric_name": "IAMPolicyChanges",
+          "namespace": "AWS/CloudTrail",
+          "statistic": "Sum",
+          "period": 300,
+          "evaluation_periods": 1,
+          "threshold": 1,
+          "comparison_operator": "GreaterThanOrEqualToThreshold"
+        }
+      ],
+      "security_hub_integration": {
+        "enable_security_hub": true,
+        "enable_aws_foundational_standard": true,
+        "enable_cis_standard": true,
+        "enable_pci_dss_standard": false,
+        "custom_insights": [
+          {
+            "name": "CustomerSatisfactionSecurityFindings",
+            "description": "Hallazgos de seguridad específicos del proyecto",
+            "filters": {
+              "ResourceTags": [
+                {
+                  "Key": "Project",
+                  "Value": "customer-satisfaction-analytics"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+} 

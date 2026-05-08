@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Monitor de Costos AWS - Customer Satisfaction Analytics
-Account: 155537880398 (dade01esolis)
+Account: <AWS_ACCOUNT_ID> (<IAM_USER>)
 Script para mantener el proyecto dentro de la capa gratuita de AWS.
 
 Funciones:
@@ -23,10 +23,10 @@ import os
 import requests
 import pandas as pd
 
-# Configuración específica para cuenta 155537880398
-AWS_ACCOUNT_ID = "155537880398"
+# Configuración específica para cuenta <AWS_ACCOUNT_ID>
+AWS_ACCOUNT_ID = "<AWS_ACCOUNT_ID>"
 AWS_REGION = "us-east-1"
-PROJECT_PREFIX = "cs-analytics-155537880398"
+PROJECT_PREFIX = "cs-analytics-<AWS_ACCOUNT_ID>"
 
 # Configuración de buckets específicos
 S3_BUCKETS = {
@@ -40,7 +40,7 @@ GLUE_DATABASE = f"customer_satisfaction_db_{AWS_ACCOUNT_ID}"
 ATHENA_WORKGROUP = f"customer-satisfaction-wg-{AWS_ACCOUNT_ID}"
 
 class AWSCostMonitor:
-    """Monitor de costos AWS para capa gratuita - Cuenta 155537880398."""
+    """Monitor de costos AWS para capa gratuita - Cuenta <AWS_ACCOUNT_ID>."""
     
     def __init__(self, region: str = 'us-east-1'):
         """

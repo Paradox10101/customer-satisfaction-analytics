@@ -1,12 +1,17 @@
-# 🏗️ Diagrama de Arquitectura Detallado - Customer Satisfaction Analytics
+# 🏗️ Diagrama de Arquitectura Detallado — Arquitectura **AS-IS** (Implementada)
+
+> 🟢 **AS-IS · DESPLEGADO** — Este documento describe la **arquitectura realmente construida** (Free Tier, Lakehouse simple). Para la versión aspiracional inicial (TO-BE empresarial con Kinesis/SageMaker/Bedrock que NO se implementó) ver [`_LEGACY_ARQUITECTURA_TO_BE.md`](_LEGACY_ARQUITECTURA_TO_BE.md) y su diagrama HTML [`ARQUITECTURA_TO_BE.html`](ARQUITECTURA_TO_BE.html).
 
 ## 📋 Resumen Ejecutivo
 
-**Sistema completo de análisis de satisfacción del cliente** implementado con arquitectura híbrida (Local + AWS) optimizado para **costo $0.00** usando AWS Free Tier y servicios externos gratuitos.
+**Sistema de análisis de satisfacción del cliente** sobre arquitectura híbrida (Local + AWS Free Tier), con costo operacional **$0.00/mes**.
 
-**Datos totales procesados:** 171,031 registros
-**Costo operacional:** $0.00/mes
-**Período de datos:** 2023-2024 (730 días)
+| Métrica | Valor |
+|---|---|
+| Datos procesados | 171,031 registros sintéticos |
+| Costo mensual | $0.00 (AWS Free Tier) |
+| Período de datos | 2023–2024 (730 días) |
+| Canales simulados | 7 (call center, WhatsApp, tickets, reseñas, encuestas, reclamaciones, master clientes) |
 
 ---
 
@@ -339,7 +344,7 @@ Cost Control: Enabled
 
 #### 📚 AWS Glue
 ```yaml
-Database: customer_satisfaction_db_155537880398
+Database: customer_satisfaction_db_<AWS_ACCOUNT_ID>
 Tables:
   - clientes
   - tickets_soporte  
@@ -419,11 +424,11 @@ Tables:
 **Variables configuradas:**
 ```hcl
 aws_region = "us-east-1"
-aws_account_id = "155537880398"
+aws_account_id = "<AWS_ACCOUNT_ID>"
 project_name = "customer-satisfaction-analytics"
 environment = "dev"
 budget_amount = 1.00  # Alert at $1
-notification_email = "paradox1100p@gmail.com"
+notification_email = "your-email@example.com"
 ```
 
 ---
@@ -759,7 +764,7 @@ Actions:
 |-----|-------------|----------|
 | **Project Owner** | MilaPacompiaM | GitHub Issues |
 | **Technical Lead** | Edgardo | Rama: `Edgardo` |
-| **AWS Account** | 155537880398 | paradox1100p@gmail.com |
+| **AWS Account** | <AWS_ACCOUNT_ID> | your-email@example.com |
 
 ### 🔧 Comandos de Troubleshooting
 
@@ -788,7 +793,7 @@ streamlit run streamlit_app.py    # Restart dashboard
 
 **Para issues técnicos:** https://github.com/MilaPacompiaM/customer-satisfaction-analytics/issues
 
-**Para alertas AWS:** paradox1100p@gmail.com
+**Para alertas AWS:** your-email@example.com
 
 **Documentación:** Ver archivos `*.md` en el repositorio
 

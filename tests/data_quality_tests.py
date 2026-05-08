@@ -364,7 +364,8 @@ class DataQualityValidator:
                             'min': df[date_cols[0]].min(),
                             'max': df[date_cols[0]].max()
                         }
-                    except:
+                    except (ValueError, TypeError):
+                        # columna sin formato de fecha valido — saltar
                         pass
         
         if len(date_ranges) > 1:

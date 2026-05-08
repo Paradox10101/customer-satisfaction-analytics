@@ -38,7 +38,7 @@ Desarrollar una solución integral de análisis de satisfacción del cliente ban
 | **📜 LICENSE** | Licencia MIT | ✅ Completo |
 
 ### **Scripts de Simulación de Datos**
-- **`ingestion/scripts/data_simulator.py`**: Generador avanzado de datos sintéticos
+- **`scripts/data_simulator.py`**: Generador avanzado de datos sintéticos
   - 10,000 tickets de atención al cliente
   - 5,000 encuestas NPS con comentarios
   - 3,000 reviews de clientes online
@@ -265,7 +265,7 @@ aws configure
 
 ### **2. Generar Datos**
 ```bash
-python ingestion/scripts/data_simulator.py \
+python scripts/data_simulator.py \
     --tickets 10000 \
     --nps 5000 \
     --reviews 3000 \

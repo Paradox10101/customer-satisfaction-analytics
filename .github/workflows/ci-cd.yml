@@ -119,7 +119,7 @@ jobs:
     
     - name: 🎲 Generate Test Data
       run: |
-        python ingestion/scripts/data_simulator.py \
+        python scripts/data_simulator.py \
           --tickets 1000 \
           --nps 500 \
           --reviews 300 \
@@ -220,7 +220,7 @@ jobs:
     
     - name: 🎲 Generate and Upload Test Data
       run: |
-        python ingestion/scripts/data_simulator.py --output data/simulated
+        python scripts/data_simulator.py --output data/simulated
         python ingestion/scripts/s3_uploader.py \
           --bucket test-customer-satisfaction-bucket \
           --data-dir data/simulated
@@ -331,7 +331,7 @@ jobs:
     
     - name: 📤 Upload Sample Data
       run: |
-        python ingestion/scripts/data_simulator.py --output data/simulated
+        python scripts/data_simulator.py --output data/simulated
         BUCKET_NAME=$(terraform -chdir=infra/terraform output -raw data_lake_bucket_name)
         python ingestion/scripts/s3_uploader.py \
           --bucket $BUCKET_NAME \

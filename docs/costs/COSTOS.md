@@ -254,9 +254,9 @@ def monitor_costs():
 ### **Alertas Configuradas**
 | Trigger | Threshold | Action | Recipient |
 |---------|-----------|--------|-----------|
-| **S3 Storage** | >4GB (80%) | Email + Stop uploads | paradox1100p@gmail.com |
-| **Athena Scan** | >4GB (80%) | Email + Disable queries | paradox1100p@gmail.com |
-| **Monthly Cost** | >$0.50 | Email alert | paradox1100p@gmail.com |
+| **S3 Storage** | >4GB (80%) | Email + Stop uploads | your-email@example.com |
+| **Athena Scan** | >4GB (80%) | Email + Disable queries | your-email@example.com |
+| **Monthly Cost** | >$0.50 | Email alert | your-email@example.com |
 | **Daily Spend** | >$0.10 | SMS alert | Team lead |
 
 ### **Reportes Automáticos**

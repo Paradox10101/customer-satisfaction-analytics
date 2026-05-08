@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?logo=python&logoColor=white)](#)
 [![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?logo=streamlit&logoColor=white)](#)
 [![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform&logoColor=white)](#)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 > Sistema end-to-end de análisis de satisfacción del cliente sobre arquitectura **Lakehouse en AWS Free Tier** (S3 + Athena + Glue), con dashboard interactivo en Streamlit, modelo ML de análisis de sentimientos, infraestructura como código (Terraform) y políticas de gobernanza (IAM, anonimización, lineaje).
 
@@ -18,13 +18,14 @@
 2. [Problema de negocio](#2-problema-de-negocio)
 3. [Arquitectura](#3-arquitectura)
 4. [Stack tecnológico](#4-stack-tecnológico)
-5. [Estructura del repositorio](#5-estructura-del-repositorio)
-6. [Setup y prerrequisitos](#6-setup-y-prerrequisitos)
-7. [Decisiones técnicas](#7-decisiones-técnicas)
-8. [Análisis de costos](#8-análisis-de-costos)
-9. [Mi contribución](#9-mi-contribución)
-10. [Lecciones aprendidas](#10-lecciones-aprendidas)
-11. [Licencia y créditos](#11-licencia-y-créditos)
+5. [Estado de implementación (AS-IS vs TO-BE)](#5-estado-de-implementación-as-is-vs-to-be)
+6. [Estructura del repositorio](#6-estructura-del-repositorio)
+7. [Setup y prerrequisitos](#7-setup-y-prerrequisitos)
+8. [Decisiones técnicas](#8-decisiones-técnicas)
+9. [Análisis de costos](#9-análisis-de-costos)
+10. [Mi contribución](#10-mi-contribución)
+11. [Lecciones aprendidas](#11-lecciones-aprendidas)
+12. [Licencia y créditos](#12-licencia-y-créditos)
 
 ---
 
@@ -81,7 +82,9 @@ flowchart LR
     linkStyle default stroke:#000,stroke-width:1.5px
 ```
 
-**Diagrama detallado con iconos AWS:** ver [`docs/architecture/ARQUITECTURA_OFICIAL.html`](docs/architecture/ARQUITECTURA_OFICIAL.html) o [`ARQUITECTURA_OFICIAL.drawio`](docs/architecture/ARQUITECTURA_OFICIAL.drawio) (editable en [draw.io](https://app.diagrams.net)).
+**Diagramas detallados con iconos AWS** (ambos en `docs/architecture/`):
+- 🟢 [`ARQUITECTURA_AS_IS.html`](docs/architecture/ARQUITECTURA_AS_IS.html) — lo que efectivamente se desplegó (banner verde · "DESPLEGADO")
+- 🟣 [`ARQUITECTURA_TO_BE.html`](docs/architecture/ARQUITECTURA_TO_BE.html) — diseño empresarial aspiracional inicial (banner violeta · "NO DESPLEGADO")
 
 ---
 
@@ -89,24 +92,58 @@ flowchart LR
 
 | Categoría | Tecnología | Detalle |
 |---|---|---|
-| **Cloud** | AWS Free Tier | S3, Athena, Glue, IAM, QuickSight |
-| **Procesamiento** | Python 3.8+ | Pandas, PySpark (jobs opcionales) |
-| **Lakehouse** | Delta Lake samples | Parquet + Glue Catalog |
-| **Frontend** | Streamlit + Plotly | Dashboard interactivo, KPIs |
-| **ML** | NLTK, spaCy, scikit-learn | Análisis de sentimientos + predictor de satisfacción |
-| **IaC** | Terraform | Despliegue completo de infraestructura AWS |
-| **Containerización** | Docker + docker-compose | Para entorno reproducible |
-| **Gobernanza** | IAM policies + scripts custom | Anonimización + lineaje de datos |
-| **CI/CD** | GitHub Actions | Pipeline de tests y data |
+| **Cloud** | AWS Free Tier | S3, Athena, Glue, IAM, AWS Budget, QuickSight |
+| **IaC** | Terraform | Despliegue real de la infraestructura AWS |
+| **Procesamiento** | Python 3.8+ | Pandas, PySpark (Glue jobs definidos) |
+| **Lakehouse** | Parquet + Glue Catalog | 3 capas (raw / processed / curated) |
+| **Frontend** | Streamlit + Plotly | Dashboard local con KPIs y filtros |
+| **ML / NLP** | NLTK, spaCy, scikit-learn | Sentiment analyzer + satisfaction predictor (definidos) |
+| **Gobernanza** | IAM + toolkits Python | Políticas IAM + anonimización + lineaje (toolkits standalone) |
+| **CI/CD** | GitHub Actions | Workflows configurados (requirieron ajuste adicional) |
 
 ---
 
-## 5. Estructura del repositorio
+## 5. Estado de implementación (AS-IS vs TO-BE)
+
+El proyecto académico atravesó dos arquitecturas: una **TO-BE empresarial aspiracional** (Kinesis, API Gateway, EMR, Redshift Serverless) que se planteó al inicio, y la **AS-IS Free Tier** que efectivamente se construyó y sustentó. El motor real de la entrega fue **Terraform** — todo lo que está en `infra/terraform/main.tf` se aplicó en AWS y de ahí salió el resto del proyecto.
+
+> Ambas arquitecturas tienen un diagrama HTML profesional pareado para comparación visual:
+>
+> | | Diagrama | Banner |
+> |---|---|---|
+> | 🟢 AS-IS (desplegado) | [`ARQUITECTURA_AS_IS.html`](docs/architecture/ARQUITECTURA_AS_IS.html) | verde "DESPLEGADO" |
+> | 🟣 TO-BE (aspiracional) | [`ARQUITECTURA_TO_BE.html`](docs/architecture/ARQUITECTURA_TO_BE.html) | violeta "NO DESPLEGADO" |
+>
+> Material complementario del TO-BE original (drawio editable, SVGs, `JUSTIFICACION_TECNICA.md`) se preserva con prefijo `_LEGACY_` en el mismo directorio.
+
+### Componentes — qué se desplegó vs qué quedó como definición
+
+| # | Componente | Estado real |
+|---|---|---|
+| 1 | **Datos simulados** (7 datasets, 171K registros) — call center, WhatsApp, tickets, reseñas, encuestas, libro de reclamaciones, master de clientes | ✅ Generados con `scripts/data_simulator.py` (Faker, locale es_ES + es_MX) |
+| 2 | **Terraform IaC** — S3 (3 buckets), Glue database + crawler, Athena workgroup, IAM roles, AWS Budget alerts | ✅ `terraform apply` ejecutado en cuenta AWS real |
+| 3 | **AWS Budget alerts** ($1.00/mes) | ✅ Configurado y activo durante el desarrollo |
+| 4 | **Streamlit Dashboard** (KPIs interactivos + Plotly) | ✅ Demo local — primera hoja con datos reales presentada en sustentación |
+| 5 | **Anonymization toolkit** (HMAC SHA-256, mascarado de email/phone, regex PII) | ✅ Módulo standalone funcional (probado) |
+| 6 | **Data Lineage toolkit** (tracking de transformaciones raw → processed → curated, JSON reports) | ✅ Módulo standalone funcional (probado) |
+| 7 | **PySpark / Glue Job** (limpieza, validación, métricas de satisfacción) | 🟡 Definido en código, recurso Glue creado por Terraform |
+| 8 | **Sentiment Analyzer** (NLTK + VADER + TextBlob, banking lexicon) | 🟡 Definido en código (616 líneas) |
+| 9 | **Satisfaction ML Predictor** (sklearn + Optuna + SHAP) | 🟡 Definido en código, no entrenado |
+| 10 | **QuickSight automation** (boto3, dashboards ejecutivos) | 🟡 Definido en código, no presentado en demo |
+| 11 | **GitHub Actions CI/CD** (2 workflows: tests + data pipeline) | 🟡 Configurados, ejecutaron parcialmente, requirieron ajustes adicionales |
+| 12 | **Streamlit Cloud deploy** | ⚪ No realizado — repositorio público no estuvo a tiempo para deploy |
+| 13 | **Docker containerization** | ⚪ Archivos preservados en `docker/`, **no ejecutado** en el proyecto |
+
+**Leyenda:** ✅ desplegado/ejecutado · 🟡 implementado en código (no ejecutado en demo) · ⚪ no realizado.
+
+---
+
+## 6. Estructura del repositorio
 
 ```text
 customer-satisfaction-analytics/
 ├── README.md                    ← este archivo
-├── LICENSE                      ← Apache 2.0 (heredado del fork)
+├── LICENSE                      ← MIT (heredado del repo original)
 ├── streamlit_app.py             ← entrada principal del dashboard
 ├── run_dashboard.bat            ← script rápido Windows
 ├── requirements*.txt            ← dependencias por contexto
@@ -125,32 +162,30 @@ customer-satisfaction-analytics/
 │
 ├── docs/                        ← documentación + arquitectura
 │   ├── architecture/
-│   │   ├── ARQUITECTURA_OFICIAL.html    ← diagrama final con iconos AWS
-│   │   ├── ARQUITECTURA_OFICIAL.drawio  ← source editable (draw.io)
-│   │   ├── ARQUITECTURA_TO_BE.md        ← descripción narrativa
-│   │   ├── DIAGRAMA_ARQUITECTURA_DETALLADO.md
-│   │   ├── JUSTIFICACION_TECNICA.md
-│   │   └── *.svg                        ← versiones SVG de diagramas
+│   │   ├── ARQUITECTURA_AS_IS.html   ← diagrama oficial actual (HTML+SVG)
+│   │   ├── DIAGRAMA_ARQUITECTURA_DETALLADO.md  ← scope real implementado
+│   │   └── _LEGACY_*                        ← arquitectura aspiracional inicial (no implementada)
 │   ├── infrastructure/, deployment/, costs/
 │   └── README.md, context.md, project_summary.md
 │
 ├── infra/                       ← Infrastructure-as-Code
-│   ├── terraform/               ← main.tf, variables.tf, *.tfvars.example
-│   └── cdk/                     ← (legacy CDK, no activo)
+│   └── terraform/               ← main.tf, variables.tf, *.tfvars.example
 │
 ├── ingestion/                   ← scripts de carga
 │   ├── scripts/s3_uploader.py
-│   ├── sql/01_create_tables.sql
-│   └── aws_glue_jobs/, configs/
+│   └── sql/01_create_tables.sql
 │
-├── processing/                  ← jobs PySpark + SQL transformations
+├── processing/                  ← jobs PySpark
+│   └── pyspark_jobs/data_processing_job.py
 │
 ├── governance/                  ← seguridad y gobernanza
-│   ├── anonymization/           ← funciones de anonimización
-│   ├── lineage/                 ← tracking de lineaje de datos
-│   └── security_policies/       ← políticas IAM
+│   ├── POLITICAS.md             ← políticas formales del proyecto
+│   ├── anonymization/           ← funciones de anonimización (toolkit)
+│   ├── lineage/                 ← tracking de lineaje de datos (toolkit)
+│   └── security_policies/       ← políticas IAM (JSON)
 │
-├── docker/                      ← containerización
+├── docker/                      ← containerización (preservado, no ejecutado)
+│   ├── README.md                ← nota explicativa
 │   ├── Dockerfile
 │   ├── docker-compose.yml
 │   └── entrypoint.sh
@@ -158,8 +193,11 @@ customer-satisfaction-analytics/
 ├── scripts/                     ← utilidades
 │   ├── data_simulator.py        ← genera CSVs simulados (Faker)
 │   ├── aws_cost_monitor.py      ← monitoreo de costos AWS
-│   ├── diagram_generator.py     ← genera SVGs de arquitectura
-│   └── setup_*.py               ← bootstrap de cuenta AWS
+│   ├── generate_diagrams.py     ← genera SVGs de arquitectura
+│   ├── setup_account.py         ← bootstrap inicial de cuenta AWS
+│   ├── setup_free_tier.py       ← optimización Free Tier
+│   ├── setup_external_services.py
+│   └── configurar_servicios_rapido.py
 │
 ├── storage/                     ← samples del lakehouse
 └── tests/                       ← tests unitarios e integración
@@ -167,7 +205,7 @@ customer-satisfaction-analytics/
 
 ---
 
-## 6. Setup y prerrequisitos
+## 7. Setup y prerrequisitos
 
 ### Requisitos
 
@@ -219,7 +257,7 @@ terraform apply
 
 ---
 
-## 7. Decisiones técnicas
+## 8. Decisiones técnicas
 
 | Decisión | Justificación |
 |---|---|
@@ -233,7 +271,7 @@ terraform apply
 
 ---
 
-## 8. Análisis de costos
+## 9. Análisis de costos
 
 | Servicio AWS | Free Tier | Uso del proyecto | Costo |
 |---|---|---|---|
@@ -249,7 +287,7 @@ Detalle completo en [`docs/costs/COSTOS.md`](docs/costs/COSTOS.md).
 
 ---
 
-## 9. Mi contribución
+## 10. Mi contribución
 
 Como contribuidor principal del repositorio original (24 de 30 commits = ~80%), mi aporte cubrió:
 
@@ -259,7 +297,7 @@ Como contribuidor principal del repositorio original (24 de 30 commits = ~80%), 
 - **ML modeling:** `satisfaction_predictor.py` con scikit-learn
 - **Infraestructura como código:** Terraform (`main.tf`, `variables.tf`, configuración Free Tier)
 - **CI/CD:** pipelines de GitHub Actions (tests, data pipeline)
-- **Documentación de arquitectura:** diagramas detallados (drawio + SVG + HTML), `JUSTIFICACION_TECNICA.md`, `ARQUITECTURA_TO_BE.md`
+- **Documentación de arquitectura:** diagrama oficial (`ARQUITECTURA_AS_IS.html`), descripción detallada (`DIAGRAMA_ARQUITECTURA_DETALLADO.md`) y archivos legacy de la arquitectura aspiracional inicial
 - **Gobernanza:** scripts de anonimización y lineaje
 - **Migración cost-free:** transición de configuraciones costosas a Free Tier garantizado
 
@@ -271,7 +309,7 @@ git log --author="Paradox\|Edgardo\|Solis" --oneline | wc -l   # 24 commits
 
 ---
 
-## 10. Lecciones aprendidas
+## 11. Lecciones aprendidas
 
 - **El AWS Free Tier es más restrictivo de lo que parece.** Diseñar para él obliga a tomar decisiones técnicas que, paradójicamente, suelen ser más limpias (menos overhead, mejor arquitectura).
 - **Anonimizar antes de procesar es más fácil que después.** Implementarlo como primer paso del pipeline ahorra dolores de cabeza en gobernanza más adelante.
@@ -281,9 +319,9 @@ git log --author="Paradox\|Edgardo\|Solis" --oneline | wc -l   # 24 commits
 
 ---
 
-## 11. Licencia y créditos
+## 12. Licencia y créditos
 
-**Licencia:** Apache 2.0 (heredada del repositorio original).
+**Licencia:** MIT (heredada del repositorio original — ver [`LICENSE`](LICENSE)).
 
 **Repositorio original:** [`MilaPacompiaM/customer-satisfaction-analytics`](https://github.com/MilaPacompiaM/customer-satisfaction-analytics)
 

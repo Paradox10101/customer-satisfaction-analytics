@@ -8,6 +8,10 @@ import webbrowser
 import subprocess
 import json
 from datetime import datetime
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+TERRAFORM_DIR = PROJECT_ROOT / "infra" / "terraform"
 
 def mostrar_estado_actual():
     """Mostrar estado actual de la infraestructura"""
@@ -17,13 +21,13 @@ def mostrar_estado_actual():
 ║                Customer Satisfaction Analytics                    ║
 ╚══════════════════════════════════════════════════════════════════╝
     """)
-    
+
     # Obtener outputs de Terraform
     try:
         result = subprocess.run(
-            ["terraform", "output", "-json"], 
-            cwd=r"C:\Users\Edgar\Documents\GitHub\customer-satisfaction-analytics\infra\terraform",
-            capture_output=True, 
+            ["terraform", "output", "-json"],
+            cwd=str(TERRAFORM_DIR),
+            capture_output=True,
             text=True
         )
         
@@ -52,7 +56,7 @@ def configurar_streamlit_cloud():
     print("6. 📂 Completa los campos:")
     
     config = {
-        "Repository": "MilaPacompiaM/customer-satisfaction-analytics",
+        "Repository": "<USER>/customer-satisfaction-analytics",
         "Branch": "Edgardo",
         "Main file path": "analytics/streamlit_dashboard/app.py",
         "App URL": "customer-satisfaction-analytics-dashboard",
@@ -67,8 +71,8 @@ def configurar_streamlit_cloud():
         'AWS_ACCESS_KEY_ID = "tu_access_key"',
         'AWS_SECRET_ACCESS_KEY = "tu_secret_key"',
         'AWS_DEFAULT_REGION = "us-east-1"', 
-        'S3_DATA_BUCKET = "customer-satisfaction-analytics-data-lake-dev-48f0be09"',
-        'S3_RESULTS_BUCKET = "customer-satisfaction-analytics-athena-results-dev-92cc1472"',
+        'S3_DATA_BUCKET = "customer-satisfaction-analytics-data-lake-dev-<RANDOM_SUFFIX>"',
+        'S3_RESULTS_BUCKET = "customer-satisfaction-analytics-athena-results-dev-<RANDOM_SUFFIX>"',
         'ATHENA_WORKGROUP = "customer-satisfaction-analytics-workgroup-dev"'
     ]
     
@@ -103,11 +107,11 @@ def configurar_github_secrets():
     
     print("\n💡 Valores recomendados:")
     print("   🌍 AWS_DEFAULT_REGION = us-east-1")
-    print("   📧 NOTIFICATION_EMAIL = paradox1100p@gmail.com")
+    print("   📧 NOTIFICATION_EMAIL = your-email@example.com")
     
     abrir = input("\n¿Abrir GitHub Secrets en navegador? (y/n): ")
     if abrir.lower() == 'y':
-        webbrowser.open("https://github.com/MilaPacompiaM/customer-satisfaction-analytics/settings/secrets/actions")
+        webbrowser.open("https://github.com/<USER>/customer-satisfaction-analytics/settings/secrets/actions")
     
     return input("✅ ¿GitHub Secrets configurado? (y/n): ").lower() == 'y'
 
@@ -171,18 +175,18 @@ def mostrar_arquitectura_medallon():
     
     capas = [
         ("🥉 BRONZE LAYER", "Datos crudos sin procesar", [
-            "S3 bucket: customer-satisfaction-analytics-data-lake-dev-48f0be09/bronze/",
+            "S3 bucket: customer-satisfaction-analytics-data-lake-dev-<RANDOM_SUFFIX>/bronze/",
             "Formatos: CSV, JSON, Parquet",
             "Fuentes: Tickets, encuestas, reviews, datasets externos"
         ]),
         ("🥈 SILVER LAYER", "Datos limpios y validados", [
-            "S3 bucket: customer-satisfaction-analytics-data-lake-dev-48f0be09/silver/",
+            "S3 bucket: customer-satisfaction-analytics-data-lake-dev-<RANDOM_SUFFIX>/silver/",
             "Transformaciones: Limpieza, normalización, deduplicación",
             "Formato: Delta Lake / Apache Iceberg",
             "Particionado: Por fecha, canal, tipo"
         ]),
         ("🥇 GOLD LAYER", "Datos analíticos listos", [
-            "S3 bucket: customer-satisfaction-analytics-data-lake-dev-48f0be09/gold/",
+            "S3 bucket: customer-satisfaction-analytics-data-lake-dev-<RANDOM_SUFFIX>/gold/",
             "Agregaciones: KPIs, métricas de negocio",
             "Modelos: Datasets para ML y BI", 
             "Views: Optimizadas para consultas"

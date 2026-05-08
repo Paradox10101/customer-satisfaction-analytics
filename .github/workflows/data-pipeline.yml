@@ -1,4 +1,4 @@
-name: "Customer Satisfaction Analytics - Data Pipeline (Account: 155537880398)"
+name: "Customer Satisfaction Analytics - Data Pipeline (Account: ${{ secrets.AWS_ACCOUNT_ID }})"
 
 on:
   schedule:
@@ -25,9 +25,9 @@ on:
 
 env:
   AWS_DEFAULT_REGION: us-east-1
-  AWS_ACCOUNT_ID: 155537880398
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   PYTHON_VERSION: '3.9'
-  PROJECT_PREFIX: cs-analytics-155537880398
+  PROJECT_PREFIX: cs-analytics-${{ secrets.AWS_ACCOUNT_ID }}
 
 jobs:
   # Job 1: Cost monitoring and validation
@@ -97,15 +97,15 @@ jobs:
         
     - name: Check S3 bucket status
       run: |
-        echo "Checking S3 buckets for account 155537880398..."
-        aws s3 ls s3://customer-satisfaction-data-lake-155537880398-${{ github.event.inputs.environment || 'dev' }}/ || echo "Data lake bucket not found - infrastructure may not be deployed"
-        aws s3 ls s3://customer-satisfaction-athena-results-155537880398-${{ github.event.inputs.environment || 'dev' }}/ || echo "Athena results bucket not found"
-        aws s3 ls s3://customer-satisfaction-logs-155537880398-${{ github.event.inputs.environment || 'dev' }}/ || echo "Logs bucket not found"
+        echo "Checking S3 buckets for account ${{ secrets.AWS_ACCOUNT_ID }}..."
+        aws s3 ls s3://customer-satisfaction-data-lake-${{ secrets.AWS_ACCOUNT_ID }}-${{ github.event.inputs.environment || 'dev' }}/ || echo "Data lake bucket not found - infrastructure may not be deployed"
+        aws s3 ls s3://customer-satisfaction-athena-results-${{ secrets.AWS_ACCOUNT_ID }}-${{ github.event.inputs.environment || 'dev' }}/ || echo "Athena results bucket not found"
+        aws s3 ls s3://customer-satisfaction-logs-${{ secrets.AWS_ACCOUNT_ID }}-${{ github.event.inputs.environment || 'dev' }}/ || echo "Logs bucket not found"
         
     - name: Run data simulator (if needed)
       if: github.event.inputs.force_full_process == 'true'
       run: |
-        python ingestion/scripts/data_simulator.py --output-format parquet --compress
+        python scripts/data_simulator.py --output-format parquet --compress
         
     - name: Upload simulated data to S3
       if: github.event.inputs.force_full_process == 'true'

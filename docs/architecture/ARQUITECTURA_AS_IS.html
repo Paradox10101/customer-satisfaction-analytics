@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arquitectura - Customer Satisfaction Analytics (AWS)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #fff;
+            padding: 30px 20px;
+            color: #1a1a2e;
+        }
+        .page { max-width: 1600px; margin: 0 auto; }
+
+        .title-bar { text-align: center; margin-bottom: 28px; }
+        .title-bar h1 { font-size: 22px; font-weight: 600; }
+        .title-bar .sub { font-size: 14px; color: #FF9900; margin-top: 4px; font-weight: 500; }
+        .title-bar p { font-size: 12px; color: #6b7280; margin-top: 4px; }
+
+        .diagram {
+            position: relative;
+            width: 1590px;
+            height: 860px;
+            margin: 0 auto 30px;
+        }
+
+        /* Boundaries */
+        .bnd {
+            position: absolute;
+            border: 2px dashed;
+            border-radius: 14px;
+        }
+        .bnd-label {
+            position: absolute;
+            top: -11px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 12px;
+            border-radius: 4px;
+            letter-spacing: 0.3px;
+        }
+
+        .bnd-source {
+            left: 10px; top: 100px;
+            width: 200px; height: 600px;
+            border-color: #20beff;
+            background: rgba(32,190,255,0.02);
+        }
+        .bnd-source .bnd-label { left: 14px; background: #20beff; color: white; }
+
+        .bnd-local {
+            left: 240px; top: 100px;
+            width: 220px; height: 600px;
+            border-color: #6b7280;
+            background: rgba(107,114,128,0.02);
+        }
+        .bnd-local .bnd-label { left: 14px; background: #6b7280; color: white; }
+
+        .bnd-aws {
+            left: 490px; top: 20px;
+            width: 1090px; height: 800px;
+            border-color: #FF9900;
+            background: rgba(255,153,0,0.015);
+        }
+        .bnd-aws .bnd-label { left: 14px; background: #FF9900; color: white; }
+
+        .bnd-vpc {
+            left: 515px; top: 60px;
+            width: 1050px; height: 740px;
+            border-color: #232F3E;
+            background: rgba(35,47,62,0.01);
+            border-style: dotted;
+        }
+        .bnd-vpc .bnd-label {
+            left: 14px;
+            background: white;
+            color: #232F3E;
+            border: 1.5px solid #232F3E;
+        }
+
+        /* Service nodes */
+        .node {
+            position: absolute;
+            background: white;
+            border-radius: 12px;
+            border: 1.5px solid #e5e7eb;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            text-align: center;
+            padding: 14px 12px;
+        }
+        .node img {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 5px;
+            object-fit: contain;
+        }
+        .node h3 { font-size: 12.5px; font-weight: 600; margin-bottom: 3px; }
+        .node .node-sub { font-size: 9.5px; color: #6b7280; margin-bottom: 10px; }
+
+        /* Inner boxes */
+        .inner-box {
+            border: 1.5px solid;
+            border-radius: 6px;
+            padding: 8px 10px;
+            text-align: left;
+            margin-bottom: 7px;
+        }
+        .inner-title {
+            font-size: 10.5px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .chip {
+            display: inline-block;
+            font-size: 8.5px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin: 1.5px 1px;
+            font-weight: 500;
+        }
+        .tree {
+            font-family: 'Cascadia Code', Consolas, monospace;
+            font-size: 9.5px;
+            line-height: 1.7;
+            color: #374151;
+        }
+        .tree .f { color: #FF9900; font-weight: 600; }
+
+        /* Arrow labels */
+        .arrow-label {
+            position: absolute;
+            font-size: 9px;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 3px;
+            white-space: nowrap;
+            z-index: 20;
+        }
+
+        /* SVG arrows */
+        .arrows {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        /* Positions */
+        .node-sources    { left: 18px;   top: 130px; width: 184px; }
+        .node-simulator  { left: 250px;  top: 130px; width: 200px; }
+        .node-uploader   { left: 250px;  top: 350px; width: 200px; }
+        .node-s3         { left: 530px;  top: 90px;  width: 240px; height: 600px; }
+        .node-glue       { left: 800px;  top: 90px;  width: 200px; }
+        .node-athena     { left: 800px;  top: 400px; width: 200px; }
+        .node-ml         { left: 1030px; top: 90px;  width: 220px; }
+        .node-serving    { left: 1310px; top: 90px;  width: 230px; height: 320px; }
+        .node-governance { left: 1030px; top: 460px; width: 510px; height: 230px; }
+
+        /* AWS service borders */
+        .node-s3       { border-color: #569A31; border-width: 2px; }
+        .node-glue     { border-color: #FF9900; border-width: 2px; }
+        .node-athena   { border-color: #FF9900; border-width: 2px; }
+        .node-serving  { border-color: #FF4F8B; border-width: 2px; }
+
+        /* Datasets section */
+        .datasets-info {
+            margin: 0 auto 30px;
+            max-width: 1500px;
+        }
+        .datasets-info h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .datasets-info h2 .dot { width: 8px; height: 8px; border-radius: 50%; background: #FF9900; }
+        .ds-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .ds-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .ds-card h4 { font-size: 12.5px; font-weight: 600; color: #FF9900; margin-bottom: 5px; }
+        .ds-card p { font-size: 10.5px; color: #4b5563; line-height: 1.55; }
+        .ds-card .ds-meta { font-size: 9.5px; color: #9ca3af; margin-top: 6px; }
+
+        /* Tech stack */
+        .tech-stack {
+            margin: 0 auto 30px;
+            max-width: 1500px;
+        }
+        .tech-stack h2 {
+            font-size: 16px; font-weight: 600; margin-bottom: 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .tech-stack h2 .dot { width: 8px; height: 8px; border-radius: 50%; background: #232F3E; }
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+        }
+        .tech-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+        }
+        .tech-card h5 { font-size: 11px; font-weight: 600; color: #1a1a2e; margin-bottom: 3px; }
+        .tech-card p { font-size: 10px; color: #6b7280; }
+        .tech-card .tech-role {
+            font-size: 9px; color: white; background: #FF9900; border-radius: 3px;
+            padding: 1px 6px; display: inline-block; margin-top: 6px;
+        }
+        .tech-card .tech-role.s3   { background: #569A31; }
+        .tech-card .tech-role.iam  { background: #DD344C; }
+        .tech-card .tech-role.tf   { background: #7B42BC; }
+        .tech-card .tech-role.bi   { background: #FF4F8B; color: white; }
+
+        /* Free Tier protection */
+        .freetier {
+            margin: 0 auto 30px;
+            max-width: 1500px;
+        }
+        .freetier h2 {
+            font-size: 16px; font-weight: 600; margin-bottom: 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .freetier h2 .dot { width: 8px; height: 8px; border-radius: 50%; background: #569A31; }
+        .ft-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+        .ft-card {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+        }
+        .ft-card h5 { font-size: 11.5px; font-weight: 600; color: #166534; margin-bottom: 4px; }
+        .ft-card .limit { font-size: 13px; font-weight: 700; color: #166534; }
+        .ft-card .actual { font-size: 10px; color: #16a34a; margin-top: 3px; }
+
+        /* Deliverables */
+        .deliverables {
+            margin: 0 auto 30px;
+            max-width: 1500px;
+        }
+        .deliverables h2 {
+            font-size: 16px; font-weight: 600; margin-bottom: 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .deliverables h2 .dot { width: 8px; height: 8px; border-radius: 50%; background: #FF9900; }
+        .del-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+        }
+        .del-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+        }
+        .del-card .del-num {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            background: #FF9900;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            margin: 0 auto 8px;
+        }
+        .del-card h5 { font-size: 11px; font-weight: 600; color: #1a1a2e; margin-bottom: 3px; }
+        .del-card p { font-size: 10px; color: #6b7280; }
+
+        .footer {
+            text-align: center;
+            font-size: 11px;
+            color: #9ca3af;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        /* Banner AS-IS */
+        .as-is-banner {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 3px 12px rgba(16,185,129,0.25);
+            max-width: 1590px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .as-is-banner .label {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 4px;
+        }
+        .as-is-banner .desc { font-size: 13px; opacity: 0.95; }
+        .compare-hint {
+            background: #ecfdf5;
+            border-left: 4px solid #10b981;
+            padding: 14px 18px;
+            border-radius: 6px;
+            margin: 0 auto 24px;
+            max-width: 1590px;
+            font-size: 13px;
+            color: #064e3b;
+        }
+        .compare-hint a { color: #047857; font-weight: 600; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <!-- Banner AS-IS -->
+    <div class="as-is-banner">
+        <span class="label">AS-IS · IMPLEMENTADA</span>
+        <span class="desc">Arquitectura realmente desplegada en AWS Free Tier — todo lo aquí mostrado fue construido con <strong>Terraform</strong></span>
+        <span class="label">DESPLEGADO</span>
+    </div>
+
+    <div class="compare-hint">
+        Esta es la <strong>arquitectura final del proyecto</strong>, basada en lo que efectivamente se construyó. La versión aspiracional inicial (con Kinesis, API Gateway, EMR, Bedrock, etc.) está en <a href="ARQUITECTURA_TO_BE.html">ARQUITECTURA_TO_BE.html</a> como referencia de diseño.
+    </div>
+
+    <!-- Title -->
+    <div class="title-bar">
+        <h1>Arquitectura de Datos &mdash; Customer Satisfaction Analytics</h1>
+        <div class="sub">AWS Free Tier &middot; S3 + Glue + Athena + Streamlit + ML Sentiment + IaC Terraform</div>
+        <p>Diplomado Advanced Data Engineer (DMC) &middot; 2025</p>
+    </div>
+
+    <!-- DIAGRAM -->
+    <div class="diagram">
+
+        <!-- SVG Arrows -->
+        <svg class="arrows" viewBox="0 0 1590 860">
+            <defs>
+                <marker id="ah" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#FF9900"/>
+                </marker>
+                <marker id="ahg" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#569A31"/>
+                </marker>
+                <marker id="ahb" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#0073BB"/>
+                </marker>
+                <marker id="ahp" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#FF4F8B"/>
+                </marker>
+                <marker id="ahgray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/>
+                </marker>
+            </defs>
+
+            <!-- Sources -> Simulator -->
+            <line x1="200" y1="220" x2="248" y2="220" stroke="#20beff" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#ahb)"/>
+
+            <!-- Simulator -> Uploader -->
+            <line x1="350" y1="280" x2="350" y2="348" stroke="#6b7280" stroke-width="2" marker-end="url(#ahgray)"/>
+
+            <!-- Uploader -> S3 -->
+            <line x1="450" y1="430" x2="528" y2="220" stroke="#569A31" stroke-width="2.5" marker-end="url(#ahg)"/>
+
+            <!-- S3 raw -> Glue -->
+            <path d="M 770 200 L 798 180" stroke="#FF9900" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+
+            <!-- Glue -> S3 processed -->
+            <path d="M 798 240 L 770 360" stroke="#FF9900" stroke-width="2" stroke-dasharray="4 3" fill="none" marker-end="url(#ahg)"/>
+
+            <!-- S3 processed -> Athena -->
+            <path d="M 770 480 L 798 470" stroke="#FF9900" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+
+            <!-- S3 processed -> ML -->
+            <path d="M 770 410 L 1028 200" stroke="#FF9900" stroke-width="2" stroke-dasharray="4 3" fill="none" marker-end="url(#ah)"/>
+
+            <!-- ML -> S3 curated -->
+            <path d="M 1030 240 C 950 400, 850 580, 770 620" stroke="#FF9900" stroke-width="1.5" stroke-dasharray="3 3" fill="none" marker-end="url(#ahg)"/>
+
+            <!-- Athena -> Streamlit -->
+            <path d="M 1000 470 L 1308 250" stroke="#0073BB" stroke-width="2.5" fill="none" marker-end="url(#ahb)"/>
+
+            <!-- ML -> Streamlit -->
+            <path d="M 1250 200 L 1308 200" stroke="#FF4F8B" stroke-width="2" fill="none" marker-end="url(#ahp)"/>
+
+            <!-- S3 curated -> QuickSight -->
+            <path d="M 770 620 L 1308 380" stroke="#FF4F8B" stroke-width="1.5" stroke-dasharray="4 3" fill="none" marker-end="url(#ahp)"/>
+        </svg>
+
+        <!-- Arrow labels -->
+        <div class="arrow-label" style="left:204px; top:204px; background:#e0f7ff; color:#0077b6;">Faker</div>
+        <div class="arrow-label" style="left:354px; top:300px; background:#f3f4f6; color:#374151;">CSV</div>
+        <div class="arrow-label" style="left:472px; top:316px; background:#dcfce7; color:#166534; font-size:8.5px;">boto3 upload</div>
+        <div class="arrow-label" style="left:780px; top:160px; background:#fff7ed; color:#c2410c; font-size:8.5px;">Crawl</div>
+        <div class="arrow-label" style="left:780px; top:300px; background:#fff7ed; color:#c2410c; font-size:8.5px;">ETL Job</div>
+        <div class="arrow-label" style="left:780px; top:450px; background:#fff7ed; color:#c2410c; font-size:8.5px;">Query SQL</div>
+        <div class="arrow-label" style="left:905px; top:285px; background:#fff7ed; color:#c2410c; font-size:8.5px;">Read Parquet</div>
+        <div class="arrow-label" style="left:1255px; top:188px; background:#fee2e2; color:#b91c1c; font-size:8.5px;">Predict</div>
+
+        <!-- Boundaries -->
+        <div class="bnd bnd-source"><span class="bnd-label">FUENTES SIMULADAS</span></div>
+        <div class="bnd bnd-local"><span class="bnd-label">LOCAL PYTHON</span></div>
+        <div class="bnd bnd-aws"><span class="bnd-label">Amazon Web Services &middot; Free Tier</span></div>
+        <div class="bnd bnd-vpc"><span class="bnd-label">us-east-1 &middot; IAM-protected</span></div>
+
+        <!-- ====== SOURCES NODE (Faker datasets) ====== -->
+        <div class="node node-sources">
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4Ij48bGluZWFyR3JhZGllbnQgaWQ9InB5dGhvbi1vcmlnaW5hbC1hIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjcwLjI1MiIgeTE9IjEyMzcuNDc2IiB4Mj0iMTcwLjY1OSIgeTI9IjExNTEuMDg5IiBncmFkaWVudFRyYW5zZm9ybT0ibWF0cml4KC41NjMgMCAwIC0uNTY4IC0yOS4yMTUgNzA3LjgxNykiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVBOUZENCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzMwNjk5OCIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJweXRob24tb3JpZ2luYWwtYiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIHgxPSIyMDkuNDc0IiB5MT0iMTA5OC44MTEiIHgyPSIxNzMuNjIiIHkyPSIxMTQ5LjUzNyIgZ3JhZGllbnRUcmFuc2Zvcm09Im1hdHJpeCguNTYzIDAgMCAtLjU2OCAtMjkuMjE1IDcwNy44MTcpIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNGRkQ0M0IiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNGRkU4NzMiLz48L2xpbmVhckdyYWRpZW50PjxwYXRoIGZpbGw9InVybCgjcHl0aG9uLW9yaWdpbmFsLWEpIiBkPSJNNjMuMzkxIDEuOTg4Yy00LjIyMi4wMi04LjI1Mi4zNzktMTEuOCAxLjAwNy0xMC40NSAxLjg0Ni0xMi4zNDYgNS43MS0xMi4zNDYgMTIuODM3djkuNDExaDI0LjY5M3YzLjEzN0gyOS45NzdjLTcuMTc2IDAtMTMuNDYgNC4zMTMtMTUuNDI2IDEyLjUyMS0yLjI2OCA5LjQwNS0yLjM2OCAxNS4yNzUgMCAyNS4wOTYgMS43NTUgNy4zMTEgNS45NDcgMTIuNTE5IDEzLjEyNCAxMi41MTloOC40OTFWNjcuMjM0YzAtOC4xNTEgNy4wNTEtMTUuMzQgMTUuNDI2LTE1LjM0aDI0LjY2NWM2Ljg2NiAwIDEyLjM0Ni01LjY1NCAxMi4zNDYtMTIuNTQ4VjE1LjgzM2MwLTYuNjkzLTUuNjQ2LTExLjcyLTEyLjM0Ni0xMi44MzctNC4yNDQtLjcwNi04LjY0NS0xLjAyNy0xMi44NjYtMS4wMDh6TTUwLjAzNyA5LjU1N2MyLjU1IDAgNC42MzQgMi4xMTcgNC42MzQgNC43MjEgMCAyLjU5My0yLjA4MyA0LjY5LTQuNjM0IDQuNjktMi41NiAwLTQuNjMzLTIuMDk3LTQuNjMzLTQuNjktLjAwMS0yLjYwNCAyLjA3My00LjcyMSA0LjYzMy00LjcyMXoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgMTAuMjYpIi8+PHBhdGggZmlsbD0idXJsKCNweXRob24tb3JpZ2luYWwtYikiIGQ9Ik05MS42ODIgMjguMzh2MTAuOTY2YzAgOC41LTcuMjA4IDE1LjY1NS0xNS40MjYgMTUuNjU1SDUxLjU5MWMtNi43NTYgMC0xMi4zNDYgNS43ODMtMTIuMzQ2IDEyLjU0OXYyMy41MTVjMCA2LjY5MSA1LjgxOCAxMC42MjggMTIuMzQ2IDEyLjU0NyA3LjgxNiAyLjI5NyAxNS4zMTIgMi43MTMgMjQuNjY1IDAgNi4yMTYtMS44MDEgMTIuMzQ2LTUuNDIzIDEyLjM0Ni0xMi41NDd2LTkuNDEySDYzLjkzOHYtMy4xMzhoMzcuMDEyYzcuMTc2IDAgOS44NTItNS4wMDUgMTIuMzQ4LTEyLjUxOSAyLjU3OC03LjczNSAyLjQ2Ny0xNS4xNzQgMC0yNS4wOTYtMS43NzQtNy4xNDUtNS4xNjEtMTIuNTIxLTEyLjM0OC0xMi41MjFoLTkuMjY4ek03Ny44MDkgODcuOTI3YzIuNTYxIDAgNC42MzQgMi4wOTcgNC42MzQgNC42OTIgMCAyLjYwMi0yLjA3NCA0LjcxOS00LjYzNCA0LjcxOS0yLjU1IDAtNC42MzMtMi4xMTctNC42MzMtNC43MTkgMC0yLjU5NSAyLjA4My00LjY5MiA0LjYzMy00LjY5MnoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgMTAuMjYpIi8+PHJhZGlhbEdyYWRpZW50IGlkPSJweXRob24tb3JpZ2luYWwtYyIgY3g9IjE4MjUuNjc4IiBjeT0iNDQ0LjQ1IiByPSIyNi43NDMiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoMCAtLjI0IC0xLjA1NSAwIDUzMi45NzkgNTU3LjU3NikiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNCOEI4QjgiIHN0b3Atb3BhY2l0eT0iLjQ5OCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdGN0Y3RiIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD48cGF0aCBvcGFjaXR5PSIuNDQ0IiBmaWxsPSJ1cmwoI3B5dGhvbi1vcmlnaW5hbC1jKSIgZD0iTTk3LjMwOSAxMTkuNTk3YzAgMy41NDMtMTQuODE2IDYuNDE2LTMzLjA5MSA2LjQxNi0xOC4yNzYgMC0zMy4wOTItMi44NzMtMzMuMDkyLTYuNDE2IDAtMy41NDQgMTQuODE1LTYuNDE3IDMzLjA5Mi02LjQxNyAxOC4yNzUgMCAzMy4wOTEgMi44NzIgMzMuMDkxIDYuNDE3eiIvPjwvc3ZnPgo=" alt="Python Faker">
+            <h3>Multi-channel Feedback</h3>
+            <div class="node-sub">6 datasets simulados (Faker)</div>
+            <div class="inner-box" style="border-color:#20beff; background:#f0faff;">
+                <div class="inner-title" style="color:#0077b6;">Canales</div>
+                <div>
+                    <span class="chip" style="background:#e0f7ff; color:#0077b6;">Call center</span>
+                    <span class="chip" style="background:#e0f7ff; color:#0077b6;">WhatsApp</span>
+                    <span class="chip" style="background:#e0f7ff; color:#0077b6;">Tickets</span>
+                    <span class="chip" style="background:#e0f7ff; color:#0077b6;">Resenas</span>
+                    <span class="chip" style="background:#e0f7ff; color:#0077b6;">Encuestas</span>
+                    <span class="chip" style="background:#e0f7ff; color:#0077b6;">Reclamaciones</span>
+                </div>
+                <div style="font-size:9px; color:#9ca3af; margin-top:5px;">+ Clientes (master)</div>
+            </div>
+        </div>
+
+        <!-- ====== SIMULATOR NODE ====== -->
+        <div class="node node-simulator">
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4Ij48bGluZWFyR3JhZGllbnQgaWQ9InB5dGhvbi1vcmlnaW5hbC1hIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjcwLjI1MiIgeTE9IjEyMzcuNDc2IiB4Mj0iMTcwLjY1OSIgeTI9IjExNTEuMDg5IiBncmFkaWVudFRyYW5zZm9ybT0ibWF0cml4KC41NjMgMCAwIC0uNTY4IC0yOS4yMTUgNzA3LjgxNykiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVBOUZENCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzMwNjk5OCIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJweXRob24tb3JpZ2luYWwtYiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIHgxPSIyMDkuNDc0IiB5MT0iMTA5OC44MTEiIHgyPSIxNzMuNjIiIHkyPSIxMTQ5LjUzNyIgZ3JhZGllbnRUcmFuc2Zvcm09Im1hdHJpeCguNTYzIDAgMCAtLjU2OCAtMjkuMjE1IDcwNy44MTcpIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNGRkQ0M0IiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNGRkU4NzMiLz48L2xpbmVhckdyYWRpZW50PjxwYXRoIGZpbGw9InVybCgjcHl0aG9uLW9yaWdpbmFsLWEpIiBkPSJNNjMuMzkxIDEuOTg4Yy00LjIyMi4wMi04LjI1Mi4zNzktMTEuOCAxLjAwNy0xMC40NSAxLjg0Ni0xMi4zNDYgNS43MS0xMi4zNDYgMTIuODM3djkuNDExaDI0LjY5M3YzLjEzN0gyOS45NzdjLTcuMTc2IDAtMTMuNDYgNC4zMTMtMTUuNDI2IDEyLjUyMS0yLjI2OCA5LjQwNS0yLjM2OCAxNS4yNzUgMCAyNS4wOTYgMS43NTUgNy4zMTEgNS45NDcgMTIuNTE5IDEzLjEyNCAxMi41MTloOC40OTFWNjcuMjM0YzAtOC4xNTEgNy4wNTEtMTUuMzQgMTUuNDI2LTE1LjM0aDI0LjY2NWM2Ljg2NiAwIDEyLjM0Ni01LjY1NCAxMi4zNDYtMTIuNTQ4VjE1LjgzM2MwLTYuNjkzLTUuNjQ2LTExLjcyLTEyLjM0Ni0xMi44MzctNC4yNDQtLjcwNi04LjY0NS0xLjAyNy0xMi44NjYtMS4wMDh6TTUwLjAzNyA5LjU1N2MyLjU1IDAgNC42MzQgMi4xMTcgNC42MzQgNC43MjEgMCAyLjU5My0yLjA4MyA0LjY5LTQuNjM0IDQuNjktMi41NiAwLTQuNjMzLTIuMDk3LTQuNjMzLTQuNjktLjAwMS0yLjYwNCAyLjA3My00LjcyMSA0LjYzMy00LjcyMXoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgMTAuMjYpIi8+PHBhdGggZmlsbD0idXJsKCNweXRob24tb3JpZ2luYWwtYikiIGQ9Ik05MS42ODIgMjguMzh2MTAuOTY2YzAgOC41LTcuMjA4IDE1LjY1NS0xNS40MjYgMTUuNjU1SDUxLjU5MWMtNi43NTYgMC0xMi4zNDYgNS43ODMtMTIuMzQ2IDEyLjU0OXYyMy41MTVjMCA2LjY5MSA1LjgxOCAxMC42MjggMTIuMzQ2IDEyLjU0NyA3LjgxNiAyLjI5NyAxNS4zMTIgMi43MTMgMjQuNjY1IDAgNi4yMTYtMS44MDEgMTIuMzQ2LTUuNDIzIDEyLjM0Ni0xMi41NDd2LTkuNDEySDYzLjkzOHYtMy4xMzhoMzcuMDEyYzcuMTc2IDAgOS44NTItNS4wMDUgMTIuMzQ4LTEyLjUxOSAyLjU3OC03LjczNSAyLjQ2Ny0xNS4xNzQgMC0yNS4wOTYtMS43NzQtNy4xNDUtNS4xNjEtMTIuNTIxLTEyLjM0OC0xMi41MjFoLTkuMjY4ek03Ny44MDkgODcuOTI3YzIuNTYxIDAgNC42MzQgMi4wOTcgNC42MzQgNC42OTIgMCAyLjYwMi0yLjA3NCA0LjcxOS00LjYzNCA0LjcxOS0yLjU1IDAtNC42MzMtMi4xMTctNC42MzMtNC43MTkgMC0yLjU5NSAyLjA4My00LjY5MiA0LjYzMy00LjY5MnoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgMTAuMjYpIi8+PHJhZGlhbEdyYWRpZW50IGlkPSJweXRob24tb3JpZ2luYWwtYyIgY3g9IjE4MjUuNjc4IiBjeT0iNDQ0LjQ1IiByPSIyNi43NDMiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoMCAtLjI0IC0xLjA1NSAwIDUzMi45NzkgNTU3LjU3NikiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNCOEI4QjgiIHN0b3Atb3BhY2l0eT0iLjQ5OCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdGN0Y3RiIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD48cGF0aCBvcGFjaXR5PSIuNDQ0IiBmaWxsPSJ1cmwoI3B5dGhvbi1vcmlnaW5hbC1jKSIgZD0iTTk3LjMwOSAxMTkuNTk3YzAgMy41NDMtMTQuODE2IDYuNDE2LTMzLjA5MSA2LjQxNi0xOC4yNzYgMC0zMy4wOTItMi44NzMtMzMuMDkyLTYuNDE2IDAtMy41NDQgMTQuODE1LTYuNDE3IDMzLjA5Mi02LjQxNyAxOC4yNzUgMCAzMy4wOTEgMi44NzIgMzMuMDkxIDYuNDE3eiIvPjwvc3ZnPgo=" alt="Python">
+            <h3>Data Simulator</h3>
+            <div class="node-sub">scripts/data_simulator.py</div>
+            <div class="inner-box" style="border-color:#9ca3af; background:#f9fafb;">
+                <div class="inner-title" style="color:#374151;">
+                    <span>Generacion realista</span>
+                    <span class="chip" style="background:#e5e7eb; color:#374151;">Faker</span>
+                </div>
+                <div style="font-size:10px; color:#6b7280;">
+                    Genera CSV + Parquet con datos coherentes entre canales
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== UPLOADER NODE ====== -->
+        <div class="node node-uploader">
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4Ij48bGluZWFyR3JhZGllbnQgaWQ9InB5dGhvbi1vcmlnaW5hbC1hIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjcwLjI1MiIgeTE9IjEyMzcuNDc2IiB4Mj0iMTcwLjY1OSIgeTI9IjExNTEuMDg5IiBncmFkaWVudFRyYW5zZm9ybT0ibWF0cml4KC41NjMgMCAwIC0uNTY4IC0yOS4yMTUgNzA3LjgxNykiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVBOUZENCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzMwNjk5OCIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJweXRob24tb3JpZ2luYWwtYiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIHgxPSIyMDkuNDc0IiB5MT0iMTA5OC44MTEiIHgyPSIxNzMuNjIiIHkyPSIxMTQ5LjUzNyIgZ3JhZGllbnRUcmFuc2Zvcm09Im1hdHJpeCguNTYzIDAgMCAtLjU2OCAtMjkuMjE1IDcwNy44MTcpIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNGRkQ0M0IiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNGRkU4NzMiLz48L2xpbmVhckdyYWRpZW50PjxwYXRoIGZpbGw9InVybCgjcHl0aG9uLW9yaWdpbmFsLWEpIiBkPSJNNjMuMzkxIDEuOTg4Yy00LjIyMi4wMi04LjI1Mi4zNzktMTEuOCAxLjAwNy0xMC40NSAxLjg0Ni0xMi4zNDYgNS43MS0xMi4zNDYgMTIuODM3djkuNDExaDI0LjY5M3YzLjEzN0gyOS45NzdjLTcuMTc2IDAtMTMuNDYgNC4zMTMtMTUuNDI2IDEyLjUyMS0yLjI2OCA5LjQwNS0yLjM2OCAxNS4yNzUgMCAyNS4wOTYgMS43NTUgNy4zMTEgNS45NDcgMTIuNTE5IDEzLjEyNCAxMi41MTloOC40OTFWNjcuMjM0YzAtOC4xNTEgNy4wNTEtMTUuMzQgMTUuNDI2LTE1LjM0aDI0LjY2NWM2Ljg2NiAwIDEyLjM0Ni01LjY1NCAxMi4zNDYtMTIuNTQ4VjE1LjgzM2MwLTYuNjkzLTUuNjQ2LTExLjcyLTEyLjM0Ni0xMi44MzctNC4yNDQtLjcwNi04LjY0NS0xLjAyNy0xMi44NjYtMS4wMDh6TTUwLjAzNyA5LjU1N2MyLjU1IDAgNC42MzQgMi4xMTcgNC42MzQgNC43MjEgMCAyLjU5My0yLjA4MyA0LjY5LTQuNjM0IDQuNjktMi41NiAwLTQuNjMzLTIuMDk3LTQuNjMzLTQuNjktLjAwMS0yLjYwNCAyLjA3My00LjcyMSA0LjYzMy00LjcyMXoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgMTAuMjYpIi8+PHBhdGggZmlsbD0idXJsKCNweXRob24tb3JpZ2luYWwtYikiIGQ9Ik05MS42ODIgMjguMzh2MTAuOTY2YzAgOC41LTcuMjA4IDE1LjY1NS0xNS40MjYgMTUuNjU1SDUxLjU5MWMtNi43NTYgMC0xMi4zNDYgNS43ODMtMTIuMzQ2IDEyLjU0OXYyMy41MTVjMCA2LjY5MSA1LjgxOCAxMC42MjggMTIuMzQ2IDEyLjU0NyA3LjgxNiAyLjI5NyAxNS4zMTIgMi43MTMgMjQuNjY1IDAgNi4yMTYtMS44MDEgMTIuMzQ2LTUuNDIzIDEyLjM0Ni0xMi41NDd2LTkuNDEySDYzLjkzOHYtMy4xMzhoMzcuMDEyYzcuMTc2IDAgOS44NTItNS4wMDUgMTIuMzQ4LTEyLjUxOSAyLjU3OC03LjczNSAyLjQ2Ny0xNS4xNzQgMC0yNS4wOTYtMS43NzQtNy4xNDUtNS4xNjEtMTIuNTIxLTEyLjM0OC0xMi41MjFoLTkuMjY4ek03Ny44MDkgODcuOTI3YzIuNTYxIDAgNC42MzQgMi4wOTcgNC42MzQgNC42OTIgMCAyLjYwMi0yLjA3NCA0LjcxOS00LjYzNCA0LjcxOS0yLjU1IDAtNC42MzMtMi4xMTctNC42MzMtNC43MTkgMC0yLjU5NSAyLjA4My00LjY5MiA0LjYzMy00LjY5MnoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgMTAuMjYpIi8+PHJhZGlhbEdyYWRpZW50IGlkPSJweXRob24tb3JpZ2luYWwtYyIgY3g9IjE4MjUuNjc4IiBjeT0iNDQ0LjQ1IiByPSIyNi43NDMiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoMCAtLjI0IC0xLjA1NSAwIDUzMi45NzkgNTU3LjU3NikiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNCOEI4QjgiIHN0b3Atb3BhY2l0eT0iLjQ5OCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdGN0Y3RiIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD48cGF0aCBvcGFjaXR5PSIuNDQ0IiBmaWxsPSJ1cmwoI3B5dGhvbi1vcmlnaW5hbC1jKSIgZD0iTTk3LjMwOSAxMTkuNTk3YzAgMy41NDMtMTQuODE2IDYuNDE2LTMzLjA5MSA2LjQxNi0xOC4yNzYgMC0zMy4wOTItMi44NzMtMzMuMDkyLTYuNDE2IDAtMy41NDQgMTQuODE1LTYuNDE3IDMzLjA5Mi02LjQxNyAxOC4yNzUgMCAzMy4wOTEgMi44NzIgMzMuMDkxIDYuNDE3eiIvPjwvc3ZnPgo=" alt="boto3">
+            <h3>S3 Uploader</h3>
+            <div class="node-sub">ingestion/scripts/s3_uploader.py</div>
+            <div class="inner-box" style="border-color:#9ca3af; background:#f9fafb;">
+                <div class="inner-title" style="color:#374151;">
+                    <span>Subida automatica</span>
+                    <span class="chip" style="background:#e5e7eb; color:#374151;">boto3</span>
+                </div>
+                <div style="font-size:10px; color:#6b7280;">
+                    Push a S3 con particionamiento por fecha
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== S3 DATA LAKE NODE ====== -->
+        <div class="node node-s3">
+            <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iODBweCIgaGVpZ2h0PSI4MHB4IiB2aWV3Qm94PSIwIDAgODAgODAiIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8dGl0bGU+SWNvbi1BcmNoaXRlY3R1cmUvNjQvQXJjaF9BbWF6b24tU2ltcGxlLVN0b3JhZ2UtU2VydmljZV82NDwvdGl0bGU+CiAgICA8ZGVmcz4KICAgICAgICA8bGluZWFyR3JhZGllbnQgeDE9IjAlIiB5MT0iMTAwJSIgeDI9IjEwMCUiIHkyPSIwJSIgaWQ9ImxpbmVhckdyYWRpZW50LTEiPgogICAgICAgICAgICA8c3RvcCBzdG9wLWNvbG9yPSIjMUI2NjBGIiBvZmZzZXQ9IjAlIj48L3N0b3A+CiAgICAgICAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiM2Q0FFM0UiIG9mZnNldD0iMTAwJSI+PC9zdG9wPgogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8L2RlZnM+CiAgICA8ZyBpZD0iSWNvbi1BcmNoaXRlY3R1cmUvNjQvQXJjaF9BbWF6b24tU2ltcGxlLVN0b3JhZ2UtU2VydmljZV82NCIgc3Ryb2tlPSJub25lIiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiIGZpbGwtcnVsZT0iZXZlbm9kZCI+CiAgICAgICAgPGcgaWQ9IlJlY3RhbmdsZSIgZmlsbD0idXJsKCNsaW5lYXJHcmFkaWVudC0xKSI+CiAgICAgICAgICAgIDxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCI+PC9yZWN0PgogICAgICAgIDwvZz4KICAgICAgICA8ZyBpZD0iSWNvbi1TZXJ2aWNlLzY0L0FtYXpvbi1TaW1wbGUtU3RvcmFnZS1TZXJ2aWNlXzY0IiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4LjAwMDAwMCwgOC4wMDAwMDApIiBmaWxsPSIjRkZGRkZGIj4KICAgICAgICAgICAgPHBhdGggZD0iTTUyLjgzNTksMzQuODkyNiBMNTMuMjE5OSwzMi4xODg2IEM1Ni43NjA5LDM0LjMwOTYgNTYuODA2OSwzNS4xODU2IDU2LjgwNTkxMzIsMzUuMjA5NiBDNTYuNzk5OSwzNS4yMTQ2IDU2LjE5NTksMzUuNzE4NiA1Mi44MzU5LDM0Ljg5MjYgTDUyLjgzNTksMzQuODkyNiBaIE01MC44OTI5LDM0LjM1MjYgQzQ0Ljc3MjksMzIuNTAwNiAzNi4yNDk5LDI4LjU5MDYgMzIuODAwOSwyNi45NjA2IEMzMi44MDA5LDI2Ljk0NjYgMzIuODA0OSwyNi45MzM2IDMyLjgwNDksMjYuOTE5NiBDMzIuODA0OSwyNS41OTQ2IDMxLjcyNjksMjQuNTE2NiAzMC40MDA5LDI0LjUxNjYgQzI5LjA3NjksMjQuNTE2NiAyNy45OTg5LDI1LjU5NDYgMjcuOTk4OSwyNi45MTk2IEMyNy45OTg5LDI4LjI0NDYgMjkuMDc2OSwyOS4zMjI2IDMwLjQwMDksMjkuMzIyNiBDMzAuOTgyOSwyOS4zMjI2IDMxLjUxMDksMjkuMTA1NiAzMS45Mjc5LDI4Ljc2MDYgQzM1Ljk4NTksMzAuNjgxNiA0NC40NDI5LDM0LjUzNDYgNTAuNjA3OSwzNi4zNTQ2IEw0OC4xNjk5LDUzLjU2MDYgQzQ4LjE2MjksNTMuNjA3NiA0OC4xNTk5LDUzLjY1NDYgNDguMTU5OSw1My43MDE2IEM0OC4xNTk5LDU1LjIxNjYgNDEuNDUyOSw1Ny45OTk2IDMwLjQ5MzksNTcuOTk5NiBDMTkuNDE4OSw1Ny45OTk2IDEyLjY0MDksNTUuMjE2NiAxMi42NDA5LDUzLjcwMTYgQzEyLjY0MDksNTMuNjU1NiAxMi42Mzc5LDUzLjYxMDYgMTIuNjMxOSw1My41NjU2IEw3LjUzNzksMTYuMzU4NiBDMTEuOTQ2OSwxOS4zOTM2IDIxLjQyOTksMjAuOTk5NiAzMC40OTk5LDIwLjk5OTYgQzM5LjU1NTksMjAuOTk5NiA0OS4wMjI5LDE5LjM5OTYgNTMuNDQwOSwxNi4zNzM2IEw1MC44OTI5LDM0LjM1MjYgWiBNNi45OTk5LDEyLjQ3NzYgQzcuMDcxOSwxMS4xNjE2IDE0LjYzMzksNS45OTk2IDMwLjQ5OTksNS45OTk2IEM0Ni4zNjM5LDUuOTk5NiA1My45MjY5LDExLjE2MDYgNTMuOTk5OSwxMi40Nzc2IEw1My45OTk5LDEyLjkyNjYgQzUzLjEyOTksMTUuODc3NiA0My4zMjk5LDE4Ljk5OTYgMzAuNDk5OSwxOC45OTk2IEMxNy42NDc5LDE4Ljk5OTYgNy44NDI5LDE1Ljg2NzYgNi45OTk5LDEyLjkxMjYgTDYuOTk5OSwxMi40Nzc2IFogTTU1Ljk5OTksMTIuNDk5NiBDNTUuOTk5OSw5LjAzNDYgNDYuMDY1OSwzLjk5OTYgMzAuNDk5OSwzLjk5OTYgQzE0LjkzMzksMy45OTk2IDQuOTk5OSw5LjAzNDYgNC45OTk5LDEyLjQ5OTYgTDUuMDkzOSwxMy4yNTM2IEwxMC42NDE5LDUzLjc3NzYgQzEwLjc3NDksNTguMzA5NiAyMi44NjA5LDU5Ljk5OTYgMzAuNDkzOSw1OS45OTk2IEMzOS45NjU5LDU5Ljk5OTYgNTAuMDI4OSw1Ny44MjE2IDUwLjE1ODksNTMuNzgwNiBMNTIuNTU0OSwzNi44ODM2IEM1My44ODc5LDM3LjIwMjYgNTQuOTg0OSwzNy4zNjU2IDU1Ljg2NTksMzcuMzY1NiBDNTcuMDQ4OSwzNy4zNjU2IDU3Ljg0ODksMzcuMDc2NiA1OC4zMzM5LDM2LjQ5ODYgQzU4LjczMTksMzYuMDI0NiA1OC44ODM5LDM1LjQ1MDYgNTguNzY5OSwzNC44Mzk2IEM1OC41MTA5LDMzLjQ1NTYgNTYuODY3OSwzMS45NjM2IDUzLjUyMTksMzAuMDU0NiBMNTUuODk3OSwxMy4yOTI2IEw1NS45OTk5LDEyLjQ5OTYgWiIgaWQ9IkFtYXpvbi1TaW1wbGUtU3RvcmFnZS1TZXJ2aWNlLUljb25fNjRfU3F1aWQiPjwvcGF0aD4KICAgICAgICA8L2c+CiAgICA8L2c+Cjwvc3ZnPg==" alt="Amazon S3">
+            <h3>Amazon S3</h3>
+            <div class="node-sub">Data Lake (3 capas)</div>
+
+            <!-- RAW -->
+            <div class="inner-box" style="border-color:#93c5fd; background:#f0f9ff;">
+                <div class="inner-title">
+                    <span style="color:#0369a1;">raw/</span>
+                    <span class="chip" style="background:#dbeafe; color:#0369a1;">CSV</span>
+                </div>
+                <div class="tree">
+                    <span class="f">/raw/</span><br>
+                    &nbsp;&nbsp;+-- <span class="f">clientes/</span><br>
+                    &nbsp;&nbsp;+-- <span class="f">llamadas/</span><br>
+                    &nbsp;&nbsp;+-- <span class="f">whatsapp/</span><br>
+                    &nbsp;&nbsp;+-- <span class="f">tickets/</span><br>
+                    &nbsp;&nbsp;+-- <span class="f">resenas/</span>
+                </div>
+            </div>
+
+            <!-- PROCESSED -->
+            <div class="inner-box" style="border-color:#86efac; background:#f0fdf4;">
+                <div class="inner-title">
+                    <span style="color:#166534;">processed/</span>
+                    <span class="chip" style="background:#dcfce7; color:#166534;">Parquet</span>
+                </div>
+                <div style="font-size:10px; color:#6b7280;">
+                    Limpio, particionado, anonimizado
+                </div>
+            </div>
+
+            <!-- CURATED -->
+            <div class="inner-box" style="border-color:#FF9900; background:#fff7ed;">
+                <div class="inner-title">
+                    <span style="color:#c2410c;">curated/</span>
+                    <span class="chip" style="background:#fff7ed; color:#c2410c;">ML-ready</span>
+                </div>
+                <div style="font-size:10px; color:#6b7280;">
+                    Features + scores de sentimiento
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== AWS GLUE NODE ====== -->
+        <div class="node node-glue">
+            <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iODBweCIgaGVpZ2h0PSI4MHB4IiB2aWV3Qm94PSIwIDAgODAgODAiIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8IS0tIEdlbmVyYXRvcjogU2tldGNoIDY0ICg5MzUzNykgLSBodHRwczovL3NrZXRjaC5jb20gLS0+CiAgICA8dGl0bGU+SWNvbi1BcmNoaXRlY3R1cmUvNjQvQXJjaF9BV1MtR2x1ZV82NDwvdGl0bGU+CiAgICA8ZGVzYz5DcmVhdGVkIHdpdGggU2tldGNoLjwvZGVzYz4KICAgIDxkZWZzPgogICAgICAgIDxsaW5lYXJHcmFkaWVudCB4MT0iMCUiIHkxPSIxMDAlIiB4Mj0iMTAwJSIgeTI9IjAlIiBpZD0ibGluZWFyR3JhZGllbnQtMSI+CiAgICAgICAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiM0RDI3QTgiIG9mZnNldD0iMCUiPjwvc3RvcD4KICAgICAgICAgICAgPHN0b3Agc3RvcC1jb2xvcj0iI0ExNjZGRiIgb2Zmc2V0PSIxMDAlIj48L3N0b3A+CiAgICAgICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDwvZGVmcz4KICAgIDxnIGlkPSJJY29uLUFyY2hpdGVjdHVyZS82NC9BcmNoX0FXUy1HbHVlXzY0IiBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj4KICAgICAgICA8ZyBpZD0iSWNvbi1BcmNoaXRlY3R1cmUtQkcvNjQvQW5hbHl0aWNzIiBmaWxsPSJ1cmwoI2xpbmVhckdyYWRpZW50LTEpIj4KICAgICAgICAgICAgPHJlY3QgaWQ9IlJlY3RhbmdsZSIgeD0iMCIgeT0iMCIgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIj48L3JlY3Q+CiAgICAgICAgPC9nPgogICAgICAgIDxwYXRoIGQ9Ik0zMywyMyBMMzUsMjMgTDM1LDIxIEwzMywyMSBMMzMsMjMgWiBNMzEsMjQgTDMxLDIwIEMzMSwxOS40NDggMzEuNDQ3LDE5IDMyLDE5IEwzNiwxOSBDMzYuNTUzLDE5IDM3LDE5LjQ0OCAzNywyMCBMMzcsMjQgQzM3LDI0LjU1MiAzNi41NTMsMjUgMzYsMjUgTDMyLDI1IEMzMS40NDcsMjUgMzEsMjQuNTUyIDMxLDI0IEwzMSwyNCBaIE00MSwxNyBMNDMsMTcgTDQzLDE1IEw0MSwxNSBMNDEsMTcgWiBNMzksMTggTDM5LDE0IEMzOSwxMy40NDggMzkuNDQ3LDEzIDQwLDEzIEw0NCwxMyBDNDQuNTUzLDEzIDQ1LDEzLjQ0OCA0NSwxNCBMNDUsMTggQzQ1LDE4LjU1MiA0NC41NTMsMTkgNDQsMTkgTDQwLDE5IEMzOS40NDcsMTkgMzksMTguNTUyIDM5LDE4IEwzOSwxOCBaIE00MywyNyBMNDUsMjcgTDQ1LDI1IEw0MywyNSBMNDMsMjcgWiBNNDIsMjMgTDQ2LDIzIEM0Ni41NTMsMjMgNDcsMjMuNDQ4IDQ3LDI0IEw0NywyOCBDNDcsMjguNTUyIDQ2LjU1MywyOSA0NiwyOSBMNDIsMjkgQzQxLjQ0NywyOSA0MSwyOC41NTIgNDEsMjggTDQxLDI0IEM0MSwyMy40NDggNDEuNDQ3LDIzIDQyLDIzIEw0MiwyMyBaIE00MCwzMy41IEMzOC4yMzksMzMuNSAzMS44NTQsMzMuNDI1IDI3LjcwMSwzMi40MDQgTDM3Ljg0Niw0OC40NjYgQzM3Ljk0Niw0OC42MjYgMzgsNDguODExIDM4LDQ5IEwzOCw1MS4yNzcgQzM5LjQwNCw1MS42ODQgNDAuNzAxLDUxLjY4OCA0Miw1MS4yOTMgTDQyLDQ5IEM0Miw0OC44MTEgNDIuMDU0LDQ4LjYyNiA0Mi4xNTQsNDguNDY2IEw1Mi4yOTksMzIuNDA0IEM0OC4xNDYsMzMuNDI1IDQxLjc2MSwzMy41IDQwLDMzLjUgTDQwLDMzLjUgWiBNMjQuMjU0LDMwLjY5MiBDMjQuMDk1LDMwLjQ2IDI0LDMwLjIxIDI0LDI5LjkzNyBDMjQsMjcuMDkyIDMzLjM4NCwyNi41NjYgMzguOTc4LDI2LjUwNSBMMzguOTk5LDI4LjUwNSBDMzIuMTI3LDI4LjU4IDI3LjkyOCwyOS4zNjQgMjYuNDQ4LDI5Ljk0OCBDMjguMDE4LDMwLjYwNCAzMi42NDMsMzEuNSA0MCwzMS41IEM0Ny4zMzgsMzEuNSA1MS45NTcsMzAuNjA5IDUzLjUzOSwyOS45NTQgQzUyLjg5MywyOS42OTMgNTEuNTU1LDI5LjMwNyA0OC44NzksMjguOTggTDQ5LjEyMSwyNi45OTUgQzU1LjE4MywyNy43MzUgNTYsMjguODk3IDU2LDI5LjkzNyBDNTYsMzAuMjEgNTUuOTA1LDMwLjQ2IDU1Ljc0NiwzMC42OTIgTDQ0LDQ5LjI5IEw0NCw1MiBDNDQsNTIuNDA4IDQzLjc1Miw1Mi43NzYgNDMuMzczLDUyLjkyOCBDNDIuMjgyLDUzLjM2NiA0MS4xODYsNTMuNTg0IDQwLjA2Niw1My41ODQgQzM4Ljk1Niw1My41ODQgMzcuODI0LDUzLjM2OSAzNi42NTQsNTIuOTM4IEMzNi4yNjIsNTIuNzkzIDM2LDUyLjQxOSAzNiw1MiBMMzYsNDkuMjkgTDI0LjI1NCwzMC42OTIgWiBNNDYuOTI0LDU5LjYxNyBDNDcuMDc5LDU5Ljk5MSA0Ni45OTMsNjAuNDIxIDQ2LjcwNyw2MC43MDcgTDQwLjcwNyw2Ni43MDcgQzQwLjUxMiw2Ni45MDIgNDAuMjU2LDY3IDQwLDY3IEMzOS43NDQsNjcgMzkuNDg4LDY2LjkwMiAzOS4yOTMsNjYuNzA3IEwzMy4yOTMsNjAuNzA3IEMzMy4wMDcsNjAuNDIxIDMyLjkyMSw1OS45OTEgMzMuMDc2LDU5LjYxNyBDMzMuMjMsNTkuMjQ0IDMzLjU5Niw1OSAzNCw1OSBMMzcsNTkgTDM3LDU2IEwzOSw1NiBMMzksNjAgQzM5LDYwLjU1MiAzOC41NTMsNjEgMzgsNjEgTDM2LjQxNCw2MSBMNDAsNjQuNTg2IEw0My41ODYsNjEgTDQyLDYxIEM0MS40NDcsNjEgNDEsNjAuNTUyIDQxLDYwIEw0MSw1NiBMNDMsNTYgTDQzLDU5IEw0Niw1OSBDNDYuNDA0LDU5IDQ2Ljc3LDU5LjI0NCA0Ni45MjQsNTkuNjE3IEw0Ni45MjQsNTkuNjE3IFoiIGlkPSJBV1MtR2x1ZV9JY29uXzY0X1NxdWlkIiBmaWxsPSIjRkZGRkZGIj48L3BhdGg+CiAgICA8L2c+Cjwvc3ZnPg==" alt="AWS Glue">
+            <h3>AWS Glue</h3>
+            <div class="node-sub">Catalog + ETL Jobs</div>
+            <div class="inner-box" style="border-color:#FF9900; background:#fff7ed;">
+                <div class="inner-title" style="color:#c2410c;">Componentes</div>
+                <div>
+                    <span class="chip" style="background:#fff7ed; color:#c2410c;">Crawlers</span>
+                    <span class="chip" style="background:#fff7ed; color:#c2410c;">Data Catalog</span>
+                    <span class="chip" style="background:#fff7ed; color:#c2410c;">ETL Jobs</span>
+                </div>
+                <div style="font-size:9px; color:#FF9900; margin-top:4px;">CSV &rarr; Parquet</div>
+            </div>
+        </div>
+
+        <!-- ====== AMAZON ATHENA NODE ====== -->
+        <div class="node node-athena">
+            <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iODBweCIgaGVpZ2h0PSI4MHB4IiB2aWV3Qm94PSIwIDAgODAgODAiIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8IS0tIEdlbmVyYXRvcjogU2tldGNoIDY0ICg5MzUzNykgLSBodHRwczovL3NrZXRjaC5jb20gLS0+CiAgICA8dGl0bGU+SWNvbi1BcmNoaXRlY3R1cmUvNjQvQXJjaF9BbWF6b24tQXRoZW5hXzY0PC90aXRsZT4KICAgIDxkZXNjPkNyZWF0ZWQgd2l0aCBTa2V0Y2guPC9kZXNjPgogICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IHgxPSIwJSIgeTE9IjEwMCUiIHgyPSIxMDAlIiB5Mj0iMCUiIGlkPSJsaW5lYXJHcmFkaWVudC0xIj4KICAgICAgICAgICAgPHN0b3Agc3RvcC1jb2xvcj0iIzREMjdBOCIgb2Zmc2V0PSIwJSI+PC9zdG9wPgogICAgICAgICAgICA8c3RvcCBzdG9wLWNvbG9yPSIjQTE2NkZGIiBvZmZzZXQ9IjEwMCUiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPC9kZWZzPgogICAgPGcgaWQ9Ikljb24tQXJjaGl0ZWN0dXJlLzY0L0FyY2hfQW1hem9uLUF0aGVuYV82NCIgc3Ryb2tlPSJub25lIiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiIGZpbGwtcnVsZT0iZXZlbm9kZCI+CiAgICAgICAgPGcgaWQ9Ikljb24tQXJjaGl0ZWN0dXJlLUJHLzY0L0FuYWx5dGljcyIgZmlsbD0idXJsKCNsaW5lYXJHcmFkaWVudC0xKSI+CiAgICAgICAgICAgIDxyZWN0IGlkPSJSZWN0YW5nbGUiIHg9IjAiIHk9IjAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCI+PC9yZWN0PgogICAgICAgIDwvZz4KICAgICAgICA8cGF0aCBkPSJNMzguMjk1MDUsMjcuMjI2NzMxMiBDNDIuNzg3MzE5LDI3LjIyNjczMTIgNDUuMjQ3ODQzNywyOC4yMzMxODI1IDQ1LjY5NjQ3NTEsMjguNzM3OTE5MyBDNDUuMjQ3ODQzNywyOS4yNDI2NTYyIDQyLjc4NzMxOSwzMC4yNDkxMDc0IDM4LjI5NTA1LDMwLjI0OTEwNzQgQzMzLjgwMjc4MTEsMzAuMjQ5MTA3NCAzMS4zNDIyNTY0LDI5LjI0MjY1NjIgMzAuODkzNjI1LDI4LjczNzkxOTMgQzMxLjM0MjI1NjQsMjguMjMzMTgyNSAzMy44MDI3ODExLDI3LjIyNjczMTIgMzguMjk1MDUsMjcuMjI2NzMxMiBMMzguMjk1MDUsMjcuMjI2NzMxMiBaIE0zNy43ODM4ODgyLDM1LjI4MjM3MTIgQzM3LjYxOTEyNTQsMzUuMTk3NzQ0NyAzNy41MDI5OTczLDM1LjAyOTQ5OTEgMzcuNTAyOTk3MywzNC44MzAwMjIzIEMzNy41MDI5OTczLDM0LjU0OTk0ODcgMzcuNzI5Mjk4MSwzNC4zMjEyNTU2IDM4LjAwNjIxODgsMzQuMzIxMjU1NiBDMzguMDg2NjE1MSwzNC4zMjEyNTU2IDM4LjE2MDA2MzYsMzQuMzQ0NDI3MiAzOC4yMjg1NDk0LDM0LjM3OTY4ODIgTDM3Ljc4Mzg4ODIsMzUuMjgyMzcxMiBaIE00My41Njc0NjEyLDQzLjU5MDg4MzQgQzQzLjQ5MzAyMDEsNDMuNjUxMzMwOSA0My4zMjIzMDIsNDMuNzY4MTk2MSA0Mi45NzA5NDAzLDQzLjkwOTI0MDMgQzQyLjY1ODI4NzksNDQuMDM0MTY1MiA0Mi4yODgwNjc3LDQ0LjE0NzAwMDYgNDEuODY4MjIwMiw0NC4yNDU3MzE2IEM0MC43NTI1OTcxLDQ0LjUwNzY3MDggMzkuMzgwODk2OCw0NC42NTE3Mzc0IDM4LjAwNTIyNjIsNDQuNjUxNzM3NCBDMzQuOTk2ODE1NSw0NC42NTE3Mzc0IDMyLjkwMDU1NTYsNDQuMDAxOTI2NSAzMi40NDg5NDY2LDQzLjU5ODk0MzEgTDMxLjExNTk1NTYsMzEuMTUwNzgzIEMzMy4xNTk2MTA0LDMxLjk4Njk3MzcgMzYuMTcwMDA2MywzMi4yNjQwMjQ5IDM4LjI5NTA1LDMyLjI2NDAyNDkgQzQwLjM4NDM2MjEsMzIuMjY0MDI0OSA0My4zMjkyNDk4LDMxLjk5NTAzMzQgNDUuMzcxOTEyMSwzMS4xOTEwODEzIEw0NC41NzQ4OTY3LDM2LjY2NTYxMjEgQzQzLjA3MzE3MjYsMzYuMDk5NDIwMyA0MS4xOTkyNDM0LDM1LjI3NzMzMzkgMzkuNDIzNTc2MywzNC40MTI5MzQ0IEMzOS4yNDI5MzI3LDMzLjc4NjI5NSAzOC42ODAxNTg0LDMzLjMyNDg3ODkgMzguMDA2MjE4OCwzMy4zMjQ4Nzg5IEMzNy4xODgzNTk4LDMzLjMyNDg3ODkgMzYuNTIzMzUzMiwzNC4wMDA4ODM3IDM2LjUyMzM1MzIsMzQuODMwMDIyMyBDMzYuNTIzMzUzMiwzNS42NjExNzU3IDM3LjE4ODM1OTgsMzYuMzM2MTczMSAzOC4wMDYyMTg4LDM2LjMzNjE3MzEgQzM4LjE5OTc2NTUsMzYuMzM2MTczMSAzOC4zODQzNzkzLDM2LjI5NTg3NDcgMzguNTUzMTEyMywzNi4yMjczNjc1IEM0MS4wMzQ0ODA1LDM3LjQ1MjQzNzMgNDIuODgzNTk2MSwzOC4yMzgyNTUyIDQ0LjI3NTE0NzQsMzguNzIyODQyOCBMNDMuNTY3NDYxMiw0My41OTA4ODM0IFogTTI4Ljg3MTgwNjIsMjguODQ2NzI0OSBMMzAuNDc4NzQwMyw0My44NDk4MDAzIEMzMC41OTE4OTA3LDQ2LjYzNDQxNjIgMzcuNjk5NTIxNyw0Ni42NjY2NTQ5IDM4LjAwNTIyNjIsNDYuNjY2NjU0OSBDMzkuNTI2ODAxMiw0Ni42NjY2NTQ5IDQxLjA1NzMwOTEsNDYuNTAzNDQ2NiA0Mi4zMTQ4NjY1LDQ2LjIwOTI2ODYgQzQyLjgyOTk5ODUsNDYuMDg4MzczNiA0My4yOTY0OTU4LDQ1Ljk0NTMxNDQgNDMuNzAwNDYyNSw0NS43ODMxMTM2IEM0NC44NzM2NTM0LDQ1LjMxMTYyMjkgNDUuNDg5MDMyNyw0NC42Njg4NjQyIDQ1LjUzMTcxMjIsNDMuODczOTc5MyBMNDYuMjAwNjg5MSwzOS4yNzU5Mzc2IEM0Ni42NTYyNjgzLDM5LjM2OTYzMTMgNDcuMDI4NDczNSwzOS40MTA5MzcxIDQ3LjMyNTI0NTIsMzkuNDEwOTM3MSBDNDguMjU5MjMyMSwzOS40MTA5MzcxIDQ4LjUwNTM4MzksMzkuMDI4MTAyOCA0OC42NzUxMDk0LDM4Ljc2NDE0ODYgQzQ4Ljg1Mzc2OCwzOC40ODYwOSA0OC45MDUzODA0LDM4LjE0NDU2MTUgNDguODIyMDA2NCwzNy44MDEwMTgxIEM0OC42MzE0Mzc0LDM3LjAxMTE3MDQgNDcuNTE2ODA2OCwzNS45NzE0NzMgNDYuNzcyMzk2MywzNS4zNTM5MDA4IEw0Ny43MTMzMzExLDI4Ljg4NTAwODMgTDQ3LjcwNDM5ODIsMjguODg0MDAwOCBDNDcuNzA4MzY4NCwyOC44MzQ2MzU0IDQ3LjcyNDI0OTIsMjguNzg4MjkyMyA0Ny43MjQyNDkyLDI4LjczNzkxOTMgQzQ3LjcyNDI0OTIsMjUuOTU0MzEwOSA0MS43OTY3NTY4LDI1LjIxMTgxMzggMzguMjk1MDUsMjUuMjExODEzOCBDMzQuNzkzMzQzMywyNS4yMTE4MTM4IDI4Ljg2NTg1MDksMjUuOTU0MzEwOSAyOC44NjU4NTA5LDI4LjczNzkxOTMgQzI4Ljg2NTg1MDksMjguNzc1MTk1MyAyOC44Nzg3NTQxLDI4LjgwODQ0MTQgMjguODgwNzM5MSwyOC44NDU3MTc0IEwyOC44NzE4MDYyLDI4Ljg0NjcyNDkgWiBNMzcuODM1NTAwNywyMC4wNTk2Njk4IEM0Ni40ODY1NDI3LDIwLjA1OTY2OTggNTMuNTI0Njk1NCwyNy4yMDM1NTk3IDUzLjUyNDY5NTQsMzUuOTg0NTcgQzUzLjUyNDY5NTQsNDQuNzY1NTgwMyA0Ni40ODY1NDI3LDUxLjkwOTQ3MDEgMzcuODM1NTAwNyw1MS45MDk0NzAxIEMyOS4xODM0NjYxLDUxLjkwOTQ3MDEgMjIuMTQ1MzEzMyw0NC43NjU1ODAzIDIyLjE0NTMxMzMsMzUuOTg0NTcgQzIyLjE0NTMxMzMsMjcuMjAzNTU5NyAyOS4xODM0NjYxLDIwLjA1OTY2OTggMzcuODM1NTAwNywyMC4wNTk2Njk4IEwzNy44MzU1MDA3LDIwLjA1OTY2OTggWiBNMTIuOTg1MDk0NSw0MS44MzQ4ODI4IEwxMi45ODUwOTQ1LDQzLjg0OTgwMDMgTDIxLjkxODAyLDQzLjg0OTgwMDMgTDIxLjkxODAyLDQzLjczMDkyMDEgQzI0Ljc3MzU3ODUsNDkuNzQ5NDc4NiAzMC44MjYxMzE4LDUzLjkyNDM4NzYgMzcuODM1NTAwNyw1My45MjQzODc2IEM0Ny41ODAzMjk4LDUzLjkyNDM4NzYgNTUuNTA5NzksNDUuODc2ODA3MiA1NS41MDk3OSwzNS45ODQ1NyBDNTUuNTA5NzksMjYuMDkyMzMyNyA0Ny41ODAzMjk4LDE4LjA0NDc1MjQgMzcuODM1NTAwNywxOC4wNDQ3NTI0IEMzMC4yNTM0MzIsMTguMDQ0NzUyNCAyMy43OTA5NTY3LDIyLjkyNDg4MjUgMjEuMjg1NzY3NCwyOS43NDUzNzgxIEwxMi45ODUwOTQ1LDI5Ljc0NTM3ODEgTDEyLjk4NTA5NDUsMzEuNzYwMjk1NSBMMjAuNjc2MzQzNCwzMS43NjAyOTU1IEMyMC4zNjY2Njg2LDMzLjA1Njg5NDkgMjAuMTg1MDMyNSwzNC40MDE4NTIzIDIwLjE3MDE0NDMsMzUuNzkwMTMwNCBMMTEsMzUuNzkwMTMwNCBMMTEsMzcuODA1MDQ3OSBMMjAuMjUxNTMzMSwzNy44MDUwNDc5IEMyMC4zOTE0ODIzLDM5LjIwNDQwODEgMjAuNzA2MTE5OCw0MC41NDgzNTggMjEuMTQ0ODI1Nyw0MS44MzQ4ODI4IEwxMi45ODUwOTQ1LDQxLjgzNDg4MjggWiBNNjcuMDc5OTEzNiw2Ni4wMzUwNDkgQzY1Ljg3ODkzMTQsNjcuMjU2MDg4OSA2My43OTY1NjcyLDY3LjI2MzE0MTIgNjIuNTk2NTc3NSw2Ni4wNDYxMzEgTDUxLjkzMjY0OTYsNTUuMjIwOTg3IEM1My42NDg3NjM4LDUzLjkyMjM3MjcgNTUuMTgwMjY0Myw1Mi4zOTAwMjc5IDU2LjQ5MzQwNDMsNTAuNjc2MzQwNiBMNjcuMDkxODI0MSw2MS40ODUzNjUzIEM2Ny42ODgzNDUsNjIuMDkxODU1NSA2OC4wMTY4NzgyLDYyLjg5OTgzNzQgNjguMDE0OTAyLDYzLjc1OTE5OTcgQzY4LjAxMzkwMDUsNjQuNjIwNTc2OSA2Ny42ODIzODk4LDY1LjQyNzU1MTMgNjcuMDc5OTEzNiw2Ni4wMzUwNDkgTDY3LjA3OTkxMzYsNjYuMDM1MDQ5IFogTTY4LjQ5NzI3MTEsNjAuMDYyODMzNiBMNTcuNjYxNjMyNSw0OS4wMTAwMDM5IEM2MC4wNjM1OTY5LDQ1LjI1NjIxMjcgNjEuNDY1MDczNiw0MC43ODUxMTA4IDYxLjQ2NTA3MzYsMzUuOTg0NTcgQzYxLjQ2NTA3MzYsMjIuNzU4NjUxOCA1MC44NjQ2Njg3LDEyIDM3LjgzNTUwMDcsMTIgQzI4LjQ3MjgwMjIsMTIgMTkuOTgyNTUyOCwxNy42MTk2MDQ4IDE2LjIwMzkyNTQsMjYuMzE2OTk2IEwxOC4wMjAyODY5LDI3LjEyOTAwNzcgQzIxLjQ4MTI5OTIsMTkuMTYzMDMxNiAyOS4yNTg4OTk3LDE0LjAxNDkxNzUgMzcuODM1NTAwNywxNC4wMTQ5MTc1IEM0OS43NzA4ODE2LDE0LjAxNDkxNzUgNTkuNDc5OTc5MSwyMy44Njk4Nzg4IDU5LjQ3OTk3OTEsMzUuOTg0NTcgQzU5LjQ3OTk3OTEsNDguMDk4MjUzNyA0OS43NzA4ODE2LDU3Ljk1NDIyMjUgMzcuODM1NTAwNyw1Ny45NTQyMjI1IEMyOS44NjIzNjg0LDU3Ljk1NDIyMjUgMjIuNTU3MjIwNSw1My41MjQ0MjY1IDE4Ljc2ODY2NzUsNDYuMzkzNjMzNiBMMTcuMDIxNzg0Myw0Ny4zNTA3MTk0IEMyMS4xNTU3NDM3LDU1LjEzNDM0NTUgMjkuMTMxODUzNiw1OS45NjkxMzk5IDM3LjgzNTUwMDcsNTkuOTY5MTM5OSBDNDIuMzkxMjkyNiw1OS45NjkxMzk5IDQ2LjY0ODMyNzksNTguNjUwMzc2NSA1MC4yNjAyMDc0LDU2LjM3MzUxOTcgTDYxLjE5NDEwODIsNjcuNDcxNjg1MSBDNjIuMTY0ODE5NSw2OC40NTY5Nzk3IDYzLjQ1NjEyMzUsNjkgNjQuODI3ODIzOCw2OSBDNjYuMjA3NDY0NSw2OSA2Ny41MDY3MDg5LDY4LjQ1Mjk0OTkgNjguNDgxMzkwMyw2Ny40NjI2MTggQzY5LjQ1ODA1NjgsNjYuNDc3MzIzMyA2OS45OTgwMDI1LDY1LjE2MzU5NzIgNzAsNjMuNzYyMjIyMSBDNzAuMDAyOTY1Myw2Mi4zNjI4NjE5IDY5LjQ2Nzk4MjMsNjEuMDQ5MTM1NyA2OC40OTcyNzExLDYwLjA2MjgzMzYgTDY4LjQ5NzI3MTEsNjAuMDYyODMzNiBaIiBpZD0iQW1hem9uLUF0aGVuYV9JY29uXzY0X1NxdWlkIiBmaWxsPSIjRkZGRkZGIj48L3BhdGg+CiAgICA8L2c+Cjwvc3ZnPg==" alt="Athena">
+            <h3>Amazon Athena</h3>
+            <div class="node-sub">SQL serverless sobre Lakehouse</div>
+            <div class="inner-box" style="border-color:#FF9900; background:#fff7ed;">
+                <div class="inner-title" style="color:#c2410c;">Queries</div>
+                <div style="font-size:10px; color:#6b7280;">
+                    KPIs por canal, cohortes,<br>tendencias temporales
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== ML / NLP NODE ====== -->
+        <div class="node node-ml">
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4Ij48cGF0aCBmaWxsPSIjZjg5OTM5IiBkPSJNOTguMTggODguMTNjMTUuNjMtMTUuNjIgMTguMjMtMzguMzYgNS44LTUwLjc4LTEyLjQzLTEyLjQyLTM1LjE3LTkuODItNTAuOCA1LjgtMTUuNjMgMTUuNjItMTEuMTEgNDUuNDgtNS44IDUwLjc4IDQuMjkgNC4yOSAzNS4xNyA5LjgyIDUwLjgtNS44WiIvPjxwYXRoIGZpbGw9IiMzNDk5Y2QiIGQ9Ik0zNC4wNCA2NS41NmMtOS4wNy05LjA2LTIyLjI3LTEwLjU3LTI5LjQ4LTMuMzctNy4yMSA3LjIxLTUuNyAyMC40IDMuMzcgMjkuNDYgOS4wNyA5LjA3IDI2LjQgNi40NCAyOS40OCAzLjM3IDIuNDktMi40OSA1LjcxLTIwLjQtMy4zNy0yOS40NloiLz48cGF0aCBmaWxsPSIjMDEwMTAxIiBkPSJNMTIzLjgyIDg1LjY4Yy0uNTggMC0uODctLjM1LS44Ny0xLjA2IDAtLjUzLjM1LTEuNjkgMS4wNC0zLjQ2IDEuMDEtMi41OSAxLjUyLTQuNDUgMS41Mi01LjU4IDAtLjY4LS4yLTEuMjUtLjYtMS43LS40LS40NS0uOS0uNjgtMS41LS42OC0uODggMC0xLjg5LjQxLTMuMDMgMS4yNC0xLjE0LjgzLTIuNjcgMi4zMi00LjYgNC40OC4yOC0xLjQuODgtMy4zMiAxLjc4LTUuNzZsLTQuMzEuODNjLS45OCAyLjEyLTEuNjkgNC4wMy0yLjEzIDUuNzMtLjIyLjgzLS4zOCAxLjY5LS40OSAyLjU2LTEuMzUgMS4zMS0yLjIzIDIuMS0yLjYxIDIuMzktLjM5LjI5LS44LjQzLTEuMjIuNDMtLjM5IDAtLjctLjE1LS45My0uNDQtLjIzLS4yOS0uMzQtLjY5LS4zNC0xLjE4IDAtLjUzLjEtMS4xNC4zLTEuODNzLjY0LTEuOTkgMS4zMy0zLjlsMS42NC00LjUyLTEuNjEuMDdjLTEuNDYgMi43OC0zLjE3IDQuMjgtNS4xMyA0LjQ5LjUzLTEuMzguOC0yLjQ0LjgtMy4xOCAwLS45NC0uNDYtMS40MS0xLjM4LTEuNDEtMS4wOSAwLTEuOTQuNTEtMi41NSAxLjU0LS42MiAxLjAzLS45MyAyLS45MyAyLjkxcy41MSAxLjU1IDEuNTIgMmMtLjY2Ljk3LTEuNCAxLjg4LTIuMiAyLjc0LS45NS45NC0xLjY5IDEuNjYtMi4yMyAyLjEzLS41NS40OS0xLjA2LjczLTEuNTIuNzMtLjcyIDAtMS4wOC0uNTEtMS4wOC0xLjUycy40LTIuNzUgMS4yLTUuMzVsMS41Ni01LjE4aC0uOTlsLTMuNjEgMmMtLjU5LTEuMzUtMS42Mi0yLjAzLTMuMDktMi4wMy0xLjE3IDAtMi41MS41LTQuMDMgMS40OS0xLjUyLjk5LTIuNzcgMi4yOC0zLjc0IDMuODktLjc1IDEuMjQtMS4yMSAyLjU0LTEuMzggMy44OC0xLjM2IDEuMzYtMi4zOCAyLjI0LTMuMDYgMi42NS0uNzEuNDItMS40NS42My0yLjIzLjYzLTEuOTkgMC0zLjIyLTEuMTUtMy42OS0zLjQ1IDUuMTktMS41MiA3Ljc4LTMuNSA3Ljc4LTUuOTQgMC0uOTItLjMzLTEuNjYtLjk5LTIuMjMtLjY2LS41Ny0xLjU0LS44NS0yLjYzLS44NS0yLjExIDAtNC4wMyAxLjAxLTUuNzYgMy4wMy0xLjU3IDEuODMtMi40MiAzLjg2LTIuNTcgNi4wOS0xLjQzIDEuNDEtMi41MSAyLjM0LTMuMjEgMi43OS0uNzIuNDYtMS40LjY5LTIuMDMuNjlzLTEuMTMtLjMtMS41LS45Yy0uMzgtLjYtLjU3LTEuNDEtLjU3LTIuNDQgMC0uNDYuMDUtMS4zLjE0LTIuNTMgMi4zNi0yLjU2IDQuMDktNC45NiA1LjItNy4yMSAxLjExLTIuMjUgMS42Ni00LjU4IDEuNjYtNi45OCAwLS44NS0uMTEtMS41Mi0uMzMtMi4wMi0uMjItLjUtLjUtLjc1LS44NC0uNzUtLjA3IDAtLjE4LjAyLS4zMi4wN2wtNC40OSAxLjY2Yy0xLjUzIDIuOTItMi44NCA2LjExLTMuOTEgOS41OC0xLjA3IDMuNDYtMS42MSA2LjQzLTEuNjEgOC45IDAgMS42NS4zOCAyLjk2IDEuMTYgMy45NC43Ny45OCAxLjc5IDEuNDcgMy4wNSAxLjQ3IDEuMSAwIDIuMjUtLjM1IDMuNDYtMS4wNSAxLjIxLS43IDIuNjEtMS43OSA0LjIyLTMuMjZzMC0uMDIgMC0uMDJjLjE5IDEuMTEuNjUgMi4wNCAxLjM3IDIuOC45OSAxLjAyIDIuMjggMS41NCAzLjg4IDEuNTQgMS40NCAwIDIuNzUtLjM1IDMuOTQtMS4wNSAxLjE1LS42NyAyLjQ0LTEuNzIgMy44OC0zLjExLjEyIDEuMDQuNDYgMS45NCAxLjAzIDIuNzEuNzMuOTcgMS42MSAxLjQ2IDIuNjQgMS40NnMyLjA5LS40IDMuMDktMS4yYzEtLjggMi4wOC0yLjA1IDMuMjYtMy43My0uMTEgMy4yOS43NyA0LjkzIDIuNjMgNC45My43NCAwIDEuNTItLjI3IDIuMzMtLjgxczIuMTYtMS43MSA0LjA1LTMuNWMxLjY0LTEuNjIgMi44NC0zLjE0IDMuNjEtNC41NiAxLjA0LS4xOCAxLjk5LS40OSAyLjg2LS45NC0xLjc4IDIuNzktMi42NyA1LjAyLTIuNjcgNi42OCAwIC45LjI1IDEuNjUuNzQgMi4yNS40OS42IDEuMS45MSAxLjgyLjkxIDEuNTcgMCAzLjgtMS40MSA2LjY4LTQuMiAwIC4yMi0uMDIuNDMtLjAyLjY1IDAgLjc4LjA3IDEuOTYuMTkgMy41NWwzLjkxLS45MmMwLTEuMDYuMDItMS45LjA1LTIuNTMuMDYtLjg0LjE4LTEuNzYuMzUtMi43Ni4xMS0uNTkuMzgtMS4xNS44MS0xLjY4bC45OS0xLjE1Yy4zNi0uNDIuNzEtLjggMS4wMi0xLjEzLjM3LS4zOS43LS43Mi45OS0uOTkuMzMtLjI5LjYyLS41My44Ny0uNjkuMjctLjE2LjQ5LS4yNS42NS0uMjUuMjkgMCAuNDQuMTkuNDQuNTdzLS4yOCAxLjI2LS44MyAyLjY1Yy0xLjA0IDIuNTktMS41NiA0LjUyLTEuNTYgNS43OCAwIC45My4yNCAxLjY3LjczIDIuMjMuNDguNTUgMS4xMi44MyAxLjkxLjgzIDEuOTQgMCA0LjI4LTEuNDQgNy00LjMxVjgyLjNjLTEuOTMgMi4yNy0zLjMyIDMuNDEtNC4xOCAzLjQxWm0tNjUuMjYtOC4yOWMuOC0zLjkxIDEuNjItNi45NCAyLjQ1LTkuMTEuODMtMi4xNyAxLjQ3LTMuMjYgMS45LTMuMjYuMiAwIC4zNy4xMy41LjQuMTMuMjYuMTkuNjIuMTkgMS4wNSAwIDEuNDktLjQ2IDMuMjYtMS40IDUuMzMtLjkzIDIuMDYtMi4xNSAzLjkzLTMuNjQgNS41OVptMTEuNzktLjk4Yy43MS0xLjE5IDEuNDUtMS43OCAyLjIzLTEuNzguODIgMCAxLjI0LjU3IDEuMjQgMS43IDAgMi4yOS0xLjUxIDMuODUtNC41MyA0LjcgMC0xLjkuMzUtMy40NCAxLjA2LTQuNjJabTE3LjQ4IDUuODVjLTEuMDQgMi4wMS0yLjE2IDMuMDEtMy4zMyAzLjAxLS40OCAwLS44OC0uMi0xLjE5LS41OS0uMzEtLjM5LS40Ny0uOTEtLjQ3LTEuNTUgMC0xLjY4LjUzLTMuNTMgMS41OC01LjUzIDEuMDUtMiAyLjE3LTMgMy4zNS0zIC40OSAwIC44OS4xOCAxLjE4LjU2LjI5LjM3LjQ0Ljg5LjQ0IDEuNTUgMCAxLjctLjUyIDMuNTUtMS41NiA1LjU2WiIvPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik03NS40NiA2NC44OGMuMTUuMjEuMjIuNDguMjIuOHMtLjA5LjYxLS4yNy44OC0uNDQuNDktLjc5LjY0Yy0uMzQuMTUtLjczLjIzLTEuMTYuMjMtLjcyIDAtMS4yNi0uMTUtMS42NC0uNDVzLS42Mi0uNzQtLjcyLTEuMzNsLjkzLS4xNWMuMDUuMzcuMi42Ni40My44NS4yNC4yLjU3LjMgMSAuM3MuNzUtLjA5Ljk2LS4yNmMuMjEtLjE3LjMxLS4zOC4zMS0uNjIgMC0uMjEtLjA5LS4zOC0uMjgtLjUtLjEzLS4wOC0uNDUtLjE5LS45Ni0uMzItLjY5LS4xNy0xLjE2LS4zMi0xLjQzLS40NXMtLjQ3LS4zLS42LS41My0uMjEtLjQ3LS4yMS0uNzRjMC0uMjUuMDYtLjQ3LjE3LS42OC4xMS0uMjEuMjctLjM4LjQ2LS41Mi4xNS0uMTEuMzQtLjIuNTktLjI3LjI1LS4wNy41Mi0uMTEuODEtLjExLjQzIDAgLjgxLjA2IDEuMTQuMTkuMzMuMTIuNTcuMjkuNzMuNTEuMTYuMjEuMjYuNS4zMi44NmwtLjkyLjEyYy0uMDQtLjI4LS4xNi0uNTEtLjM2LS42Ny0uMi0uMTYtLjQ4LS4yNC0uODUtLjI0LS40MyAwLS43NC4wNy0uOTIuMjEtLjE4LjE0LS4yOC4zMS0uMjguNSAwIC4xMi4wNC4yMy4xMS4zMy4wOC4xLjIuMTguMzYuMjUuMDkuMDMuMzcuMTEuODMuMjQuNjYuMTggMS4xMi4zMiAxLjM5LjQzLjI2LjExLjQ3LjI4LjYyLjQ5Wm00LjQ3IDEuNDRjLS4yNS4yMy0uNTUuMzQtLjkyLjM0LS40NiAwLS44My0uMTctMS4xMS0uNXMtLjQzLS44OC0uNDMtMS42Mi4xNS0xLjI3LjQ0LTEuNi42OC0uNTEgMS4xNS0uNTFjLjMxIDAgLjU4LjA5LjguMjguMjIuMTkuMzcuNDcuNDYuODRsLjkxLS4xNGMtLjExLS41Ni0uMzUtLjk5LS43My0xLjI5LS4zOC0uMy0uODctLjQ1LTEuNDctLjQ1LS40OCAwLS45MS4xMS0xLjMyLjM0LS40LjIyLS43MS41Ni0uOSAxLjAxLS4yLjQ1LS4zLjk3LS4zIDEuNTcgMCAuOTIuMjMgMS42My42OSAyLjEyLjQ2LjQ5IDEuMDcuNzQgMS44Mi43NC42IDAgMS4xMS0uMTggMS41My0uNTQuNDEtLjM2LjY3LS44Ni43Ny0xLjQ5bC0uOTItLjEyYy0uMDcuNDctLjIyLjgxLS40NyAxLjA0Wm0yLjE5Ljk4aC45NHYtNS41MmgtLjk0djUuNTJabTAtNi41NWguOTR2LTEuMDhoLS45NHYxLjA4Wm02LjczIDEuMDJoLTEuMjFsLTIuMjIgMi4yNXYtNC4zNWgtLjk0djcuNjJoLjk0VjY1LjFsLjY2LS42MyAxLjgzIDIuODJoMS4xNmwtMi4zMy0zLjQ3IDIuMTEtMi4wNVptLjk2LTEuMDJoLjk0di0xLjA4aC0uOTR2MS4wOFptMCA2LjU1aC45NHYtNS41MmgtLjk0djUuNTJabTQuNDEtLjg0Yy0uMTcuMDItLjMxLjA0LS40MS4wNC0uMTQgMC0uMjUtLjAyLS4zMi0uMDdzLS4xMy0uMTEtLjE2LS4xOGMtLjAzLS4wOC0uMDUtLjI1LS4wNS0uNTF2LTMuMjNoLjk0di0uNzNoLS45NHYtMS45M2wtLjkzLjU2djEuMzdoLS42OXYuNzNoLjY5djMuMThjMCAuNTYuMDQuOTMuMTEgMS4xLjA4LjE4LjIxLjMyLjM5LjQyLjE5LjExLjQ1LjE2Ljc5LjE2LjIxIDAgLjQ0LS4wMy43MS0uMDhsLS4xNC0uODNaIi8+PC9zdmc+DQo=" alt="ML">
+            <h3>NLP + ML Models</h3>
+            <div class="node-sub">analytics/nlp_models &amp; ml_models</div>
+            <div class="inner-box" style="border-color:#DD344C; background:#fef2f2;">
+                <div class="inner-title" style="color:#991b1b;">Sentiment Analyzer</div>
+                <div>
+                    <span class="chip" style="background:#fee2e2; color:#991b1b;">NLTK</span>
+                    <span class="chip" style="background:#fee2e2; color:#991b1b;">spaCy</span>
+                </div>
+            </div>
+            <div class="inner-box" style="border-color:#DD344C; background:#fef2f2;">
+                <div class="inner-title" style="color:#991b1b;">Satisfaction Predictor</div>
+                <div>
+                    <span class="chip" style="background:#fee2e2; color:#991b1b;">scikit-learn</span>
+                    <span class="chip" style="background:#fee2e2; color:#991b1b;">scoring</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== SERVING NODE ====== -->
+        <div class="node node-serving">
+            <img src="data:image/svg+xml;base64,PHN2ZyAgIHZpZXdCb3g9IjAgMCAxMjggMTI4IiAgIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgICB4bWxuczpzdmc9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4gIDxwYXRoICAgICBkPSJNIDYzLjk5MjU3OSw3Mi41MjEzMjUgNDEuNTUzNzMyLDYwLjY2MDMyMSAyLjYwMzQyMTEsNDAuMDc0MDU4IGMgLTAuMDM1NTU3LC0wLjAzNTU1IC0wLjEwNjY2MzcsLTAuMDM1NTUgLTAuMTQyMjE3NCwtMC4wMzU1NSAtMS40MjIxOTEzLC0wLjY3NTUyOCAtMi44Nzk5MzkyNywwLjc0NjY0MSAtMi4zNDY2MTUyLDIuMTY4ODYzIGwgMTkuODQ2Njk2NSw1MC42MTkzODMgMC4wMDM1LDAuMDEwOSBjIDAuMDIxMzQsMC4wNDk5NCAwLjAzOTEyLDAuMDk5NDQgMC4wNjA0NiwwLjE0OTMzNCAwLjgxNDE4OSwxLjg4Nzk1NiAyLjU5MTkzOCwzLjA1NCA0LjUyNjE0MywzLjUxMjY1NyAwLjE2MzUzOCwwLjAzNTg3IDAuMjgwNTI3LDAuMDY3ODIgMC40NzY5MTcsMC4xMDcwNzMgMC4xOTU0NTEsMC4wNDM1MSAwLjQ2ODgxLDAuMTAyODIgMC43MDM0NzEsMC4xMjA3NDUgMC4wMzkxMiwwLjAwMzMgMC4wNzQ2NywwLjAwMzMgMC4xMTM3ODksMC4wMDY1IGggMC4wMjg0NiBjIDAuMDI4NDEsMC4wMDQ0IDAuMDU2ODcsMC4wMDQ0IDAuMDg1MzMsMC4wMDc2IGggMC4wMzkwOCBjIDAuMDI0OTEsMC4wMDMzIDAuMDUzMzMsMC4wMDMzIDAuMDc4MjQsMC4wMDMzIGggMC4wNDYyMSBjIDAuMDI4NDYsMC4wMDQ0IDAuMDU2ODcsMC4wMDQ0IDAuMDg1MzMsMC4wMDQ0IHYgMCBjIDI1LjEzNTIzMiwyLjc0MDQxNSA1MC40OTM1NjIsMi43NDA0MTUgNzUuNjI4NzU1LDAgdiAwIGMgMC4zMDIwNywwIDAuNTk3MzIsLTAuMDE0NSAwLjg4MTQ3LC0wLjA0MjYzIDAuMDkyNiwtMC4wMTA5IDAuMTgxMzMsLTAuMDIxMzcgMC4yNzA1MSwtMC4wMzE5NSAwLjAxMDcsLTAuMDA0NCAwLjAyNDcsLTAuMDA0NCAwLjAzNTQsLTAuMDA3NiAwLjA2MDYsLTAuMDA3NiAwLjEyMDc0LC0wLjAxNzg4IDAuMTgxMzMsLTAuMDI4NTcgMC4wODg3LC0wLjAxMDkgMC4xNzc5MSwtMC4wMjgxMyAwLjI2NjY2LC0wLjA0NjEyIDAuMTc3OTEsLTAuMDM5MjUgMC4yNTg1NSwtMC4wNjczOCAwLjUwMDA0LC0wLjE1MDYgMC4yNDEwNiwtMC4wODI3NiAwLjY0MTY5LC0wLjIyNzg0IDAuODkyMTQsLTAuMzQ4NTg1IDAuMjUwODcsLTAuMTIwNzQ2IDAuNDI0NTIsLTAuMjM2NzkyIDAuNjM0NDQsLTAuMzY4MjAxIDAuMjU5NCwtMC4xNjM4MzcgMC41MDY0NCwtMC4zMzEwODYgMC43NTY4OSwtMC41MTg4MTIgMC4xMDc5NCwtMC4wODI3NiAwLjE4MTc1LC0wLjEzNTY4MyAwLjI1OTgzLC0wLjIxMDM1MSBsIC0wLjA0MjcsLTAuMDI0NzUgeiIgICAgIGZpbGw9IiNmZjRiNGIiICAgICBpZD0icGF0aDE0IiAgICAgc3R5bGU9InN0cm9rZS13aWR0aDowLjQyNjY1NyIgLz4gIDxwYXRoICAgICBkPSJtIDEyNS40NDYwNiw0MC4wNzQ1NyBoIC0wLjAzNTQgTCA4Ni40NDU3ODUsNjAuNjYwODM0IDEwOC4xMDU4Niw5Mi45MTk3NzYgMTI3LjkwMjcyLDQyLjIwNzg1NSB2IC0wLjA3MTA5IGMgMC40OTc5MSwtMS40OTMzNDYgLTEuMDMwOCwtMi44NDQzOTEgLTIuNDU2NjgsLTIuMDYyMjA1IiAgICAgZmlsbD0iIzdkMzUzYiIgICAgIGlkPSJwYXRoMTYiICAgICBzdHlsZT0ic3Ryb2tlLXdpZHRoOjAuNDI2NjU3IiAvPiAgPHBhdGggICAgIGQ9Im0gNjYuMDY5MTE3LDMwLjI4NjA1MyBjIC0wLjk5NTgxNiwtMS40NTQxOTEgLTMuMTY0NTEyLC0xLjQ1NDE5MSAtNC4xMjQ0ODgsMCBMIDQxLjU1MzgxNyw2MC42NjA1NzIgNjMuOTkyNTc5LDcyLjUyMTc2MSAxMDYuNTE2MTYsOTQuOTk1NDU4IGMgMC4yNjcwOSwtMC4yNjE1MzIgMC40ODEyNywtMC41MTYyNDkgMC43MDc0LC0wLjc4NTQ2OCAwLjMxOTk5LC0wLjM5NDY2NCAwLjYxODY1LC0wLjgxNzQ4MSAwLjg4MTksLTEuMjkwNjM5IEwgODYuNDQ1Mzc5LDYwLjY2MDU3MiBaIiAgICAgZmlsbD0iI2JkNDA0MyIgICAgIGlkPSJwYXRoMTgiICAgICBzdHlsZT0ic3Ryb2tlLXdpZHRoOjAuNDI2NjU3IiAvPjwvc3ZnPg==" alt="Streamlit">
+            <h3>Serving Layer</h3>
+            <div class="node-sub">Dashboards y BI</div>
+            <div class="inner-box" style="border-color:#FF4F8B; background:#fdf2f8;">
+                <div class="inner-title" style="color:#9d174d;">
+                    <span>Streamlit App</span>
+                    <span class="chip" style="background:#fce7f3; color:#9d174d;">Plotly</span>
+                </div>
+                <div style="font-size:10px; color:#6b7280;">
+                    KPIs interactivos<br>Filtros por canal y fecha
+                </div>
+            </div>
+            <div class="inner-box" style="border-color:#FF4F8B; background:#fdf2f8;">
+                <div class="inner-title" style="color:#9d174d;">
+                    <span>QuickSight (auto)</span>
+                    <span class="chip" style="background:#fce7f3; color:#9d174d;">opcional</span>
+                </div>
+                <div style="font-size:10px; color:#6b7280;">
+                    quicksight_dashboard.py<br>(automation script)
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== GOVERNANCE NODE ====== -->
+        <div class="node node-governance">
+            <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iODBweCIgaGVpZ2h0PSI4MHB4IiB2aWV3Qm94PSIwIDAgODAgODAiIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8IS0tIEdlbmVyYXRvcjogU2tldGNoIDY0ICg5MzUzNykgLSBodHRwczovL3NrZXRjaC5jb20gLS0+CiAgICA8dGl0bGU+SWNvbi1BcmNoaXRlY3R1cmUvNjQvQXJjaF9BV1MtSWRlbnRpdHktYW5kLUFjY2Vzcy1NYW5hZ2VtZW50XzY0PC90aXRsZT4KICAgIDxkZXNjPkNyZWF0ZWQgd2l0aCBTa2V0Y2guPC9kZXNjPgogICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IHgxPSIwJSIgeTE9IjEwMCUiIHgyPSIxMDAlIiB5Mj0iMCUiIGlkPSJsaW5lYXJHcmFkaWVudC0xIj4KICAgICAgICAgICAgPHN0b3Agc3RvcC1jb2xvcj0iI0JEMDgxNiIgb2Zmc2V0PSIwJSI+PC9zdG9wPgogICAgICAgICAgICA8c3RvcCBzdG9wLWNvbG9yPSIjRkY1MjUyIiBvZmZzZXQ9IjEwMCUiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPC9kZWZzPgogICAgPGcgaWQ9Ikljb24tQXJjaGl0ZWN0dXJlLzY0L0FyY2hfQVdTLUlkZW50aXR5LWFuZC1BY2Nlc3MtTWFuYWdlbWVudF82NCIgc3Ryb2tlPSJub25lIiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiIGZpbGwtcnVsZT0iZXZlbm9kZCI+CiAgICAgICAgPGcgaWQ9Ikljb24tQXJjaGl0ZWN0dXJlLUJHLzY0L1NlY3VyaXR5LUlkZW50aXR5LUNvbXBsaWFuY2UiIGZpbGw9InVybCgjbGluZWFyR3JhZGllbnQtMSkiPgogICAgICAgICAgICA8cmVjdCBpZD0iUmVjdGFuZ2xlIiB4PSIwIiB5PSIwIiB3aWR0aD0iODAiIGhlaWdodD0iODAiPjwvcmVjdD4KICAgICAgICA8L2c+CiAgICAgICAgPHBhdGggZD0iTTE0LDU5IEw2Niw1OSBMNjYsMjEgTDE0LDIxIEwxNCw1OSBaIE02OCwyMCBMNjgsNjAgQzY4LDYwLjU1MiA2Ny41NTMsNjEgNjcsNjEgTDEzLDYxIEMxMi40NDcsNjEgMTIsNjAuNTUyIDEyLDYwIEwxMiwyMCBDMTIsMTkuNDQ4IDEyLjQ0NywxOSAxMywxOSBMNjcsMTkgQzY3LjU1MywxOSA2OCwxOS40NDggNjgsMjAgTDY4LDIwIFogTTQ0LDQ4IEw1OSw0OCBMNTksNDYgTDQ0LDQ2IEw0NCw0OCBaIE01Nyw0MiBMNjIsNDIgTDYyLDQwIEw1Nyw0MCBMNTcsNDIgWiBNNDQsNDIgTDUyLDQyIEw1Miw0MCBMNDQsNDAgTDQ0LDQyIFogTTI5LDQ2IEMyOSw0NS40NDkgMjguNTUyLDQ1IDI4LDQ1IEMyNy40NDgsNDUgMjcsNDUuNDQ5IDI3LDQ2IEMyNyw0Ni41NTEgMjcuNDQ4LDQ3IDI4LDQ3IEMyOC41NTIsNDcgMjksNDYuNTUxIDI5LDQ2IEwyOSw0NiBaIE0zMSw0NiBDMzEsNDcuMzAyIDMwLjE2MSw0OC40MDEgMjksNDguODE2IEwyOSw1MSBMMjcsNTEgTDI3LDQ4LjgxNSBDMjUuODM5LDQ4LjQwMSAyNSw0Ny4zMDIgMjUsNDYgQzI1LDQ0LjM0NiAyNi4zNDYsNDMgMjgsNDMgQzI5LjY1NCw0MyAzMSw0NC4zNDYgMzEsNDYgTDMxLDQ2IFogTTE5LDUzLjk5MyBMMzYuOTk0LDU0IEwzNi45OTYsNTAgTDMzLDUwIEwzMyw0OCBMMzYuOTk2LDQ4IEwzNi45OTgsNDUgTDMzLDQ1IEwzMyw0MyBMMzYuOTk5LDQzIEwzNyw0MC4wMDcgTDE5LjAwNiw0MCBMMTksNTMuOTkzIFogTTIyLDM4LjAwMSBMMzQsMzguMDA2IEwzNCwzMSBDMzQuMDAxLDI4LjY5NyAzMS4xOTcsMjYuNjc3IDI4LDI2LjY3NSBMMjcuOTk2LDI2LjY3NSBDMjQuODA0LDI2LjY3NSAyMi4wMDQsMjguNjk2IDIyLjAwMiwzMSBMMjIsMzguMDAxIFogTTE3LDU0Ljk5MiBMMTcuMDA2LDM5IEMxNy4wMDYsMzguNzM0IDE3LjExMSwzOC40OCAxNy4yOTksMzguMjkyIEMxNy40ODYsMzguMTA1IDE3Ljc0MSwzOCAxOC4wMDYsMzggTDIwLDM4LjAwMSBMMjAuMDAyLDMxIEMyMC4wMDQsMjcuNTEyIDIzLjU5LDI0LjY3NSAyNy45OTYsMjQuNjc1IEwyOCwyNC42NzUgQzMyLjQxMiwyNC42NzcgMzYuMDAxLDI3LjUxNSAzNiwzMSBMMzYsMzguMDA3IEwzOCwzOC4wMDggQzM4LjU1MywzOC4wMDggMzksMzguNDU2IDM5LDM5LjAwOCBMMzguOTk0LDU1IEMzOC45OTQsNTUuMjY2IDM4Ljg4OSw1NS41MiAzOC43MDEsNTUuNzA4IEMzOC41MTQsNTUuODk1IDM4LjI1OSw1NiAzNy45OTQsNTYgTDE4LDU1Ljk5MiBDMTcuNDQ3LDU1Ljk5MiAxNyw1NS41NDQgMTcsNTQuOTkyIEwxNyw1NC45OTIgWiBNNjAsMzYgTDYyLDM2IEw2MiwzNCBMNjAsMzQgTDYwLDM2IFogTTQ0LDM2IEw1NSwzNiBMNTUsMzQgTDQ0LDM0IEw0NCwzNiBaIiBpZD0iQVdTLUlkZW50aXR5LWFuZC1BY2Nlc3MtTWFuYWdlbWVudF9JY29uXzY0X1NxdWlkIiBmaWxsPSIjRkZGRkZGIj48L3BhdGg+CiAgICA8L2c+Cjwvc3ZnPg==" alt="IAM">
+            <h3>Governance &amp; Cost Control</h3>
+            <div class="node-sub">Politicas y monitoreo transversal</div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+                <div class="inner-box" style="border-color:#DD344C; background:#fef2f2; margin-bottom:0;">
+                    <div class="inner-title" style="color:#991b1b;">IAM + Anonimizacion</div>
+                    <div style="font-size:9.5px; color:#6b7280;">
+                        Roles, policies,<br>governance/anonymization/
+                    </div>
+                </div>
+                <div class="inner-box" style="border-color:#DD344C; background:#fef2f2; margin-bottom:0;">
+                    <div class="inner-title" style="color:#991b1b;">Lineage tracking</div>
+                    <div style="font-size:9.5px; color:#6b7280;">
+                        governance/lineage/<br>data_lineage_tracking.py
+                    </div>
+                </div>
+                <div class="inner-box" style="border-color:#FF9900; background:#fff7ed; margin-bottom:0;">
+                    <div class="inner-title" style="color:#c2410c;">AWS Budget</div>
+                    <div style="font-size:9.5px; color:#6b7280;">
+                        $1.00/mes alerta<br>+ CloudWatch alarms
+                    </div>
+                </div>
+                <div class="inner-box" style="border-color:#7B42BC; background:#faf5ff; margin-bottom:0;">
+                    <div class="inner-title" style="color:#6b21a8;">Terraform IaC</div>
+                    <div style="font-size:9.5px; color:#6b7280;">
+                        infra/terraform/<br>main.tf + variables.tf
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Datasets Info -->
+    <div class="datasets-info">
+        <h2><div class="dot"></div> Datasets Simulados (6 canales + master)</h2>
+        <div class="ds-grid">
+            <div class="ds-card">
+                <h4>Llamadas Call Center</h4>
+                <p>Logs de llamadas con duracion, motivo de contacto, score de satisfaccion post-llamada y tipificacion de incidencia.</p>
+                <div class="ds-meta">CSV + Parquet &middot; Faker generated</div>
+            </div>
+            <div class="ds-card">
+                <h4>Mensajes WhatsApp</h4>
+                <p>Conversaciones con texto libre del cliente y respuesta del agente. Input principal del modelo NLP de sentimiento.</p>
+                <div class="ds-meta">CSV + Parquet &middot; Texto en espanol</div>
+            </div>
+            <div class="ds-card">
+                <h4>Tickets de Soporte</h4>
+                <p>Tickets con categoria, prioridad, estado, dias de resolucion y reapertura. Permite KPIs de SLA y backlog.</p>
+                <div class="ds-meta">CSV + Parquet &middot; Estados completos</div>
+            </div>
+            <div class="ds-card">
+                <h4>Resenas Online</h4>
+                <p>Reviews de clientes en plataformas externas con rating numerico, plataforma de origen y comentario libre.</p>
+                <div class="ds-meta">CSV + Parquet &middot; Multi-plataforma</div>
+            </div>
+            <div class="ds-card">
+                <h4>Encuestas Post-Atencion</h4>
+                <p>Encuestas NPS y CSAT enviadas tras cada interaccion. Comentario abierto opcional.</p>
+                <div class="ds-meta">CSV + Parquet &middot; NPS + CSAT</div>
+            </div>
+            <div class="ds-card">
+                <h4>Libro de Reclamaciones</h4>
+                <p>Reclamos formales registrados con tipificacion legal, descripcion detallada y estado de resolucion.</p>
+                <div class="ds-meta">CSV + Parquet &middot; Compliance Peru</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tech Stack -->
+    <div class="tech-stack">
+        <h2><div class="dot"></div> Herramientas y Tecnologias</h2>
+        <div class="tech-grid">
+            <div class="tech-card">
+                <h5>Amazon S3</h5>
+                <p>Data Lake con 3 capas (raw / processed / curated)</p>
+                <span class="tech-role s3">Storage</span>
+            </div>
+            <div class="tech-card">
+                <h5>AWS Glue</h5>
+                <p>Catalog + ETL jobs para CSV &rarr; Parquet</p>
+                <span class="tech-role">Catalog/ETL</span>
+            </div>
+            <div class="tech-card">
+                <h5>Amazon Athena</h5>
+                <p>SQL serverless sobre el Lakehouse</p>
+                <span class="tech-role">Query</span>
+            </div>
+            <div class="tech-card">
+                <h5>Streamlit + Plotly</h5>
+                <p>Dashboard interactivo con KPIs por canal</p>
+                <span class="tech-role bi">BI</span>
+            </div>
+            <div class="tech-card">
+                <h5>NLTK + spaCy</h5>
+                <p>Analisis de sentimiento sobre texto del cliente</p>
+                <span class="tech-role">NLP</span>
+            </div>
+            <div class="tech-card">
+                <h5>scikit-learn</h5>
+                <p>Modelo de prediccion de satisfaccion</p>
+                <span class="tech-role">ML</span>
+            </div>
+            <div class="tech-card">
+                <h5>Terraform</h5>
+                <p>Infrastructure-as-Code (main.tf, variables.tf)</p>
+                <span class="tech-role tf">IaC</span>
+            </div>
+            <div class="tech-card">
+                <h5>AWS IAM</h5>
+                <p>Politicas y roles con principio menor privilegio</p>
+                <span class="tech-role iam">Security</span>
+            </div>
+            <div class="tech-card">
+                <h5>AWS Budget</h5>
+                <p>Alerta a $1.00/mes (anti-costos)</p>
+                <span class="tech-role">FinOps</span>
+            </div>
+            <div class="tech-card">
+                <h5>GitHub Actions</h5>
+                <p>Workflows CI/CD configurados (requieren ajuste)</p>
+                <span class="tech-role">CI/CD</span>
+            </div>
+            <div class="tech-card">
+                <h5>Python (Faker)</h5>
+                <p>Simulador realista de los 6 canales</p>
+                <span class="tech-role">Ingest</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Free Tier -->
+    <div class="freetier">
+        <h2><div class="dot"></div> AWS Free Tier &middot; Costo $0.00 garantizado</h2>
+        <div class="ft-grid">
+            <div class="ft-card">
+                <h5>Amazon S3</h5>
+                <div class="limit">5 GB libres</div>
+                <div class="actual">Uso: &lt; 100 MB</div>
+            </div>
+            <div class="ft-card">
+                <h5>Amazon Athena</h5>
+                <div class="limit">5 GB scan/mes</div>
+                <div class="actual">Uso: &lt; 10 MB scan</div>
+            </div>
+            <div class="ft-card">
+                <h5>AWS Glue</h5>
+                <div class="limit">1M DPU-hours</div>
+                <div class="actual">Uso: &lt; 2 horas</div>
+            </div>
+            <div class="ft-card">
+                <h5>QuickSight</h5>
+                <div class="limit">4 usuarios autor</div>
+                <div class="actual">Uso: 1 usuario</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deliverables -->
+    <div class="deliverables">
+        <h2><div class="dot"></div> Entregables del Proyecto</h2>
+        <div class="del-grid">
+            <div class="del-card">
+                <div class="del-num">1</div>
+                <h5>Arquitectura</h5>
+                <p>Diagrama del Lakehouse end-to-end</p>
+            </div>
+            <div class="del-card">
+                <div class="del-num">2</div>
+                <h5>Pipeline de Datos</h5>
+                <p>6 canales &rarr; raw &rarr; processed &rarr; curated</p>
+            </div>
+            <div class="del-card">
+                <div class="del-num">3</div>
+                <h5>Modelos ML</h5>
+                <p>NLP sentiment + Satisfaction predictor</p>
+            </div>
+            <div class="del-card">
+                <div class="del-num">4</div>
+                <h5>Dashboard</h5>
+                <p>Streamlit con KPIs interactivos</p>
+            </div>
+            <div class="del-card">
+                <div class="del-num">5</div>
+                <h5>IaC + Governance</h5>
+                <p>Terraform + IAM + Budget + Lineage</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        Customer Satisfaction Analytics &middot; Diplomado Advanced Data Engineer (DMC) &middot; AWS Free Tier &middot; Costo $0.00
+    </div>
+
+</div>
+</body>
+</html>

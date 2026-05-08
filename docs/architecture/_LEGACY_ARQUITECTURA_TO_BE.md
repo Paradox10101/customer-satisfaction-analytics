@@ -1,4 +1,56 @@
-# 🏗️ ARQUITECTURA TO BE - Customer Satisfaction Analytics Platform
+# 🏗️ Arquitectura **TO-BE** (Aspiracional) — Customer Satisfaction Analytics Platform
+
+> 🟣 **TO-BE · NO IMPLEMENTADA** — Este documento describe la **arquitectura objetivo aspiracional** que se diseñó al inicio del proyecto pero **no se construyó** por restricciones de presupuesto (Free Tier) y tiempo del diplomado. Para la arquitectura realmente desplegada ver [`DIAGRAMA_ARQUITECTURA_DETALLADO.md`](DIAGRAMA_ARQUITECTURA_DETALLADO.md) y el diagrama HTML [`ARQUITECTURA_AS_IS.html`](ARQUITECTURA_AS_IS.html).
+
+## Diagrama TO-BE simplificado (Mermaid)
+
+```mermaid
+flowchart TB
+    classDef src fill:#dbeafe,stroke:#1e40af,color:#1e40af
+    classDef ingest fill:#cffafe,stroke:#0891b2,color:#0891b2
+    classDef storage fill:#dcfce7,stroke:#15803d,color:#15803d
+    classDef proc fill:#fee2e2,stroke:#b91c1c,color:#b91c1c
+    classDef serve fill:#fef3c7,stroke:#a16207,color:#a16207
+
+    SRC["7 Fuentes empresariales<br/>Call Center · WhatsApp · CRM<br/>Reviews · Mobile · Tickets · ERP"]:::src
+
+    APIGW["AWS API Gateway"]:::ingest
+    KIN["Kinesis Data Streams"]:::ingest
+    FH["Kinesis Firehose"]:::ingest
+
+    S3["S3 Lake (3 capas)"]:::storage
+    REDS["Redshift DW"]:::storage
+    GLU["Glue Catalog"]:::storage
+
+    KA["Kinesis Analytics"]:::proc
+    GETL["Glue ETL"]:::proc
+    SM["SageMaker"]:::proc
+    COMP["Comprehend"]:::proc
+    LAM["Lambda"]:::proc
+    BED["Bedrock LLMs"]:::proc
+
+    ATH["Athena"]:::serve
+    QS["QuickSight"]:::serve
+    APPS["Custom Apps + REST APIs"]:::serve
+    ALERTS["SNS Alerts"]:::serve
+
+    SRC --> APIGW --> KIN
+    SRC --> FH
+    KIN --> KA
+    KIN --> S3
+    FH --> S3
+    S3 --> GLU --> ATH
+    S3 --> GETL --> S3
+    S3 --> SM --> S3
+    S3 --> COMP
+    S3 --> REDS --> QS
+    S3 --> LAM --> ALERTS
+    S3 --> BED
+    ATH --> QS
+    ATH --> APPS
+
+    linkStyle default stroke:#94a3b8,stroke-width:1.5px
+```
 
 ## 🎯 **Visión General**
 

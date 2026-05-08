@@ -1,4 +1,29 @@
-# 🌐 DESPLIEGUE - Customer Satisfaction Analytics
+# 🌐 Despliegue — Customer Satisfaction Analytics
+
+> 🟢 **AS-IS** — En el proyecto se usó **despliegue local** (Streamlit corrió con Python directo). El despliegue AWS está preparado con Terraform pero el dashboard no se conectó a él en producción.
+
+## Flujo de despliegue
+
+```mermaid
+flowchart LR
+    DEV["Desarrollador"] -->|git push| REPO["GitHub repo"]
+    REPO -->|trigger| GHA["GitHub Actions<br/>(workflows configurados,<br/>requieren ajuste)"]
+
+    DEV -->|terraform apply| TF["Terraform"]
+    TF --> AWS["AWS resources<br/>S3 · Glue · Athena · IAM · Budget"]
+
+    DEV -->|streamlit run| LOCAL["Dashboard local<br/>localhost:8501"]
+    LOCAL -->|lee CSV| DATA["data/simulated/<br/>171K registros"]
+
+    REPO -.->|deploy futuro| SC["Streamlit Cloud<br/>(no realizado)"]
+
+    classDef done fill:#dcfce7,stroke:#15803d,color:#15803d
+    classDef partial fill:#fef3c7,stroke:#a16207,color:#854d0e
+    classDef pending fill:#f3f4f6,stroke:#9ca3af,color:#6b7280
+    class DEV,REPO,TF,AWS,LOCAL,DATA done
+    class GHA partial
+    class SC pending
+```
 
 ---
 

@@ -393,7 +393,7 @@ class CustomerSatisfactionProcessor:
                     TableInput=table_input
                 )
                 self.logger.info(f"Tabla {table_name} actualizada en Data Catalog")
-            except:
+            except glue_client.exceptions.EntityNotFoundException:
                 glue_client.create_table(
                     DatabaseName=database_name,
                     TableInput=table_input

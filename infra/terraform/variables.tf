@@ -30,7 +30,7 @@ variable "aws_region" {
 variable "aws_account_id" {
   description = "ID de la cuenta AWS"
   type        = string
-  default     = "155537880398"
+  default     = ""  # configurar via terraform.tfvars (NO commitear)
 }
 
 # Variables para S3

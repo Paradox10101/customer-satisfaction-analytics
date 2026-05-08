@@ -1,13 +1,17 @@
-# Byte-compiled / optimized / DLL files
+# =====================================================
+# Customer Satisfaction Analytics - .gitignore
+# =====================================================
+
+# ─────────────────────────────────────────────────────
+# Python
+# ─────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
+.Python
 
 # Distribution / packaging
-.Python
 build/
 develop-eggs/
 dist/
@@ -34,7 +38,7 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
+# Tests / coverage
 htmlcov/
 .tox/
 .nox/
@@ -49,60 +53,34 @@ coverage.xml
 .pytest_cache/
 cover/
 
-# Translations
-*.mo
-*.pot
+# ─────────────────────────────────────────────────────
+# Type checkers / linters
+# ─────────────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-.pybuilder/
-target/
-
-# Jupyter Notebook
+# ─────────────────────────────────────────────────────
+# Notebooks / IDEs
+# ─────────────────────────────────────────────────────
 .ipynb_checkpoints
-
-# IPython
 profile_default/
 ipython_config.py
+.idea/
+.vscode/
+.spyderproject
+.spyproject
+.ropeproject
 
-# pyenv
-.python-version
+# Claude Code settings locales
+.claude/settings.local.json
 
-# pipenv
-Pipfile.lock
-
-# poetry
-poetry.lock
-
-# pdm
-.pdm.toml
-
-# PEP 582
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
+# ─────────────────────────────────────────────────────
+# Virtual environments
+# ─────────────────────────────────────────────────────
 .env
 .venv
 env/
@@ -110,46 +88,27 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.python-version
+Pipfile.lock
+poetry.lock
+.pdm.toml
+__pypackages__/
 
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# PyCharm
-.idea/
-
-# VS Code
-.vscode/
-
-# macOS
+# ─────────────────────────────────────────────────────
+# OS
+# ─────────────────────────────────────────────────────
 .DS_Store
-
-# Windows
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# AWS
+# ─────────────────────────────────────────────────────
+# AWS / Credentials
+# ─────────────────────────────────────────────────────
 .aws/
 aws-exports.js
 amplify-gradle-config.json
@@ -157,29 +116,51 @@ amplifytools.xcconfig
 .secret-*
 *.pem
 
+# Archivos con account ID en el nombre
+setup_account_*.py
+!scripts/setup_account.py
+
+# ─────────────────────────────────────────────────────
 # Terraform
+# ─────────────────────────────────────────────────────
 *.tfstate
 *.tfstate.*
 *.tfvars
 .terraform/
 .terraform.lock.hcl
 terraform.tfplan
+crash.log
+crash.*.log
 
-# Data files
-# *.csv
+# ─────────────────────────────────────────────────────
+# Datos
+# ─────────────────────────────────────────────────────
 *.parquet
-*.json
 *.xlsx
 *.db
 *.sqlite
+
+# Datos generados — preservamos solo .gitkeep
 data/raw/*
 data/processed/*
 data/simulated/*
+data/external/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/simulated/.gitkeep
+!data/external/.gitkeep
+!data/dummy/
 
-# Model files
+# JSONs de runtime/output (terraform state plain, credenciales, etc.)
+# NOTA: NO ignoramos *.json globalmente — politicas IAM y configs si se commitean
+*tfstate*.json
+*credentials*.json
+*aws-credentials*.json
+.aws/credentials.json
+
+# ─────────────────────────────────────────────────────
+# Modelos ML
+# ─────────────────────────────────────────────────────
 *.pkl
 *.joblib
 *.h5
@@ -187,42 +168,59 @@ data/simulated/*
 models/
 checkpoints/
 
+# ─────────────────────────────────────────────────────
 # Logs
+# ─────────────────────────────────────────────────────
 logs/
 *.log
 
-# Environment variables
+# ─────────────────────────────────────────────────────
+# Variables de entorno por entorno
+# ─────────────────────────────────────────────────────
 .env.local
 .env.development
 .env.test
 .env.production
 
-# Docker
-Dockerfile
-docker-compose.yml
-
-# Secrets and credentials
+# ─────────────────────────────────────────────────────
+# Secretos y configuracion sensible
+# ─────────────────────────────────────────────────────
 secrets/
 credentials/
 config/production/
 
-# Large files
+# ─────────────────────────────────────────────────────
+# Archivos comprimidos / temporales
+# ─────────────────────────────────────────────────────
 *.zip
 *.tar.gz
 *.tgz
 *.rar
-
-# Temporary files
 tmp/
 temp/
 *.tmp
 *.temp
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# ─────────────────────────────────────────────────────
+# Documentacion
+# ─────────────────────────────────────────────────────
+docs/_build/
+/site
+
+# ─────────────────────────────────────────────────────
+# Otros
+# ─────────────────────────────────────────────────────
+.scrapy
+.webassets-cache
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+instance/
+.pybuilder/
+target/
+celerybeat-schedule
+celerybeat.pid
+*.sage.py
+*.mo
+*.pot
+cython_debug/
